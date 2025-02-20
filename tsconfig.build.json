@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": false,
+    "useDefineForClassFields": false,
+    "noEmit": false,
+    "outDir": "dist"
+  },
+  "tsc-alias": {
+    "resolveFullPaths": true
+  }
+}

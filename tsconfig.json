@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2015",
+    "useDefineForClassFields": true,
+    "lib": ["ES2015"],
+    "module": "ES2015",
+    "types": [],
+
+    /* Bundler mode */
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "checkJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+
+    /* Type */
+    "declaration": true
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.spec.ts", "src/**/*.bench.ts"]
+}

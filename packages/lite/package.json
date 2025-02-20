@@ -1,0 +1,44 @@
+{
+  "name": "@showify/lite",
+  "version": "0.1.1",
+  "private": true,
+  "description": "A lightweight (and faster) implementation of the `showify` package under 3kB of minified+gzipped code.",
+  "keywords": [
+    "string",
+    "stringify",
+    "text",
+    "format",
+    "formatting",
+    "human-readable",
+    "pretty",
+    "pretty-print",
+    "log",
+    "logging",
+    "console"
+  ],
+  "homepage": "https://github.com/Snowflyt/showify/tree/main/packages/lite",
+  "bugs": {
+    "url": "https://github.com/Snowflyt/showify/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Snowflyt/showify"
+  },
+  "license": "MPL-2.0",
+  "author": "Ge Gao (Snowflyt) <gaoge011022@gmail.com>",
+  "sideEffects": false,
+  "type": "module",
+  "main": "./index.js",
+  "module": "./index.js",
+  "types": "./index.d.ts",
+  "scripts": {
+    "build": "rimraf dist && npm run --silent compile && cpy package.json dist && json -I -f dist/package.json -e \"delete this.private; delete this.workspaces; delete this.scripts; delete this.devDependencies\" && node -e \"import fs from 'node:fs'; fs.copyFileSync('README.md', 'dist/README.md'); fs.copyFileSync('../../LICENSE', 'dist/LICENSE'); fs.copyFileSync('../../COMMERCIAL_LICENSE.md', 'dist/COMMERCIAL_LICENSE.md')\"",
+    "compile": "tsc --emitDeclarationOnly -p tsconfig.build.json && cpy src/**/*.ts dist && node -e \"import path from 'node:path'; import fs from 'node:fs'; import tsBlankSpace from 'ts-blank-space'; fs.readdirSync('dist', { recursive: true }).map((file) => path.join('dist', file)).filter((file) => file.endsWith('.ts') && !file.endsWith('.d.ts') && fs.statSync(file).isFile()).forEach((file) => { fs.writeFileSync(file.substring(0, file.lastIndexOf('.')) + '.js', tsBlankSpace(fs.readFileSync(file, 'utf-8'))); fs.rmSync(file); })\" && tsc-alias -p tsconfig.build.json && node -e \"import { replaceInFileSync } from 'replace-in-file'; [/ *\\/\\/ eslint-disable-next-line [^\\n]+\\n/g, / *\\/\\* eslint-(disable|enable) [^\\n]+ \\*\\/\\n/g, /^\\s*\\/\\/ @ts-.+$/gm].forEach((regex) => replaceInFileSync({ files: 'dist/**/*.js', from: regex, to: '' }))\" && prettier --log-level=silent --print-width 80 --write dist/**/* --ignore-path !dist/**/* && node -e \"import { replaceInFileSync } from 'replace-in-file'; replaceInFileSync({ files: 'dist/**/*.js', from: /^ *\\*\\/\\n\\n/gm, to: '*/\\n' }); replaceInFileSync({ files: 'dist/**/*.js', from: /^ *\\/\\*\\*\\n(( \\*( [^\\n]*)?\\n)+) *\\*\\/\\n( *\\/)/gm, to: '$4' })\" && prettier --log-level=silent --print-width 80 --write dist/**/* --ignore-path !dist/**/*",
+    "measure-size": "rimraf dist && npm run --silent compile && esbuild --bundle --minify --platform=neutral --log-level=silent --outfile=dist/showify.min.js dist/index.js && node -e \"import fs from 'node:fs'; import prettyBytes from 'pretty-bytes'; import { gzipSizeSync } from 'gzip-size'; import brotliSize from 'brotli-size'; const fixed = 3; const content = fs.readFileSync('dist/showify.min.js', 'utf-8'); console.log('gzip:  ', `\\x1b[33m${prettyBytes(content.length, { maximumFractionDigits: fixed })}\\x1b[0m (bundled+minified)`, '→', `\\x1b[36m${prettyBytes(gzipSizeSync(content), { maximumFractionDigits: fixed })}\\x1b[0m`); console.log('brotli:', `\\x1b[33m${prettyBytes(content.length, { maximumFractionDigits: fixed })}\\x1b[0m (bundled+minified)`, '→', `\\x1b[36m${prettyBytes(brotliSize.sync(content), { maximumFractionDigits: fixed })}\\x1b[0m`)\" && rimraf dist",
+    "test": "vitest run",
+    "test:cov": "vitest run --dir test --coverage --coverage.reporter=text --coverage.reporter=lcov --coverage.include \"src/**/*.ts\"",
+    "test:ui": "vitest --ui --dir test --coverage.enabled=true --coverage.include \"src/**/*.ts\"",
+    "test:watch": "vitest --dir test",
+    "test:watch-cov": "vitest --dir test --coverage --coverage.reporter=text --coverage.reporter=lcov --coverage.include \"src/**/*.ts\""
+  }
+}
