@@ -117,11 +117,13 @@ Here’s a comparison of the features of **showify**, `util.inspect` in Node.js,
 | WeakMap/WeakSet inspection                 | 🟡 [5]                                                                                                                                                     | ✅                | ❌                                                                                                                                                                     | ❌                                                                                                                                                                       |
 | Proxy inspection                           | ❌                                                                                                                                                         | ✅                | ❌                                                                                                                                                                     | ❌                                                                                                                                                                       |
 
-<small>[1]: object-inspect only supports single or double quotes, while **showify** supports automatic quote style.</small>
-<small>[2]: In addition to `showHidden: boolean` from Node.js, **showify** also provides an `"exclude-meta"` option, which behaves like `true` but removes common meta properties like the `length` property of arrays from the output.</small>
-<small>[3]: Whether to treat getters/setters specially. Getters may throw errors, so it’s important to account for such cases.</small>
-<small>[4]: `Promise` objects are displayed as `Promise { <state unknown> }`, since it’s impossible to determine the state of a `Promise` without awaiting it.</small>
-<small>[5]: `WeakMap` and `WeakSet` objects are displayed as `${className} { <items unknown> }` even when `showHidden` is `"always"`, since it’s impossible to retrieve the values of a `WeakMap` or `WeakSet` without knowing the keys.</small>
+<p>
+  <div><small>[1]: object-inspect only supports single or double quotes, while <strong>showify</strong> supports automatic quote style.</small></div>
+  <div><small>[2]: In addition to <code>showHidden: boolean</code> from Node.js, <strong>showify</strong> also provides an <code>"exclude-meta"</code> option, which behaves like <code>true</code> but removes common meta properties like the <code>length</code> property of arrays from the output.</small></div>
+  <div><small>[3]: Whether to treat getters/setters specially. Getters may throw errors, so it’s important to account for such cases.</small></div>
+  <div><small>[4]: <code>Promise</code> objects are displayed as <code>Promise { &lt;state unknown&gt; }</code>, since it’s impossible to determine the state of a <code>Promise</code> without awaiting it.</small></div>
+  <div><small>[5]: <code>WeakMap</code> and <code>WeakSet</code> objects are displayed as <code>${className} { &lt;items unknown&gt; }</code> even when <code>showHidden</code> is <code>"always"</code>, since it’s impossible to retrieve the values of a <code>WeakMap</code> or <code>WeakSet</code> without knowing the keys.</small></div>
+</p>
 
 Aside from the features listed above, **showify** also supports many more special cases than other libraries, such as wrapper objects for primitives (e.g., `new String("foo")`), async/generator functions, ES6 classes, and more.
 
