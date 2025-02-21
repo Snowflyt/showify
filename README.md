@@ -57,7 +57,7 @@ console.log(show(value, { indent: 2, trailingComma: "auto", colors: true }));
 //   foo: "bar",
 //   "Hello\nworld": [-0, 2n, NaN],
 //   map: Map(2) { "foo" => "bar", { bar: 42 } => "qux" },
-//   circular: <ref *1>,
+//   circular: [Circular *1],
 //   [Symbol(qux)]: { quux: "corge" },
 // }
 ```
