@@ -75,7 +75,7 @@
     "eslint-plugin-sort-destructure-keys": "^2.0.0",
     "gzip-size": "^7.0.0",
     "json": "^11.0.0",
-    "prettier": "^3.5.1",
+    "prettier": "^3.5.2",
     "prettier-plugin-packagejson": "^2.5.8",
     "pretty-bytes": "^6.1.1",
     "replace-in-file": "^8.3.0",
