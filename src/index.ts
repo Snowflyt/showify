@@ -301,7 +301,7 @@ function stringify(
   let result = "";
 
   const restLineLength = () =>
-    result.indexOf("\n") === -1 ?
+    !result.includes("\n") ?
       options.restLineLength - result.length
     : breakLength - result.slice(result.lastIndexOf("\n") + 1).length;
 
@@ -340,6 +340,7 @@ function stringify(
   }
 
   // between
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   else if (type === "between") {
     const { close, open, values } = node;
 
@@ -619,7 +620,7 @@ function buildTree(
             if (
               (type === "Function" &&
                 ownKeys.length === 1 &&
-                ownKeys[0]! === "constructor" &&
+                ownKeys[0] === "constructor" &&
                 prototype.constructor === value &&
                 Object.getPrototypeOf(prototype) === Object.prototype) ||
               (type === "GeneratorFunction" &&
@@ -1134,6 +1135,7 @@ declare namespace colorize {
    * @param colorEnabled If `false`, the returned object will not colorize strings and will return
    * the input as is.
    * @param styles The styles for different types of values.
+   * @returns
    */
   function buildC(
     colorEnabled: boolean,
@@ -1221,7 +1223,7 @@ function colorizeNode<N extends ReturnType<typeof text> | ReturnType<typeof sequ
 function cleanANSI(str: string): string {
   return str.replace(
     // eslint-disable-next-line no-control-regex
-    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+    /[\u001b\u009b][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
     "",
   );
 }
@@ -1236,6 +1238,7 @@ function getClassName(value: object): string {
     const proto = Object.getPrototypeOf(value);
     return (proto.constructor && proto.constructor.name) || "Object";
   }
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return (value.constructor && value.constructor.name) || "Object";
 }
 
@@ -1249,12 +1252,13 @@ function getClassName(value: object): string {
  *
  * Otherwise, return `null`.
  * @param value The object to get the `Symbol.toStringTag` of.
+ * @returns
  */
 function getToStringTag(
   value: object,
   showHidden: NonNullable<ShowOptions["showHidden"]>,
 ): string | null {
-  const toStringTag = value[Symbol.toStringTag as keyof typeof value];
+  const toStringTag: unknown = value[Symbol.toStringTag as keyof typeof value];
   return (
       typeof toStringTag === "string" &&
         toStringTag &&
@@ -1334,6 +1338,8 @@ function stringifyNumber(value: number | bigint, sep: "none" | (string & {})): s
   // eslint-disable-next-line @typescript-eslint/no-base-to-string
   const parts = (Object.is(value, -0) ? "-0" : "" + value).split(".");
   return (
+    // TODO: Refactor this slow regex to a faster implementation
+    // eslint-disable-next-line sonarjs/slow-regex
     parts[0]!.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1" + sep) +
     (parts[1] ? "." + parts[1].replace(/(\d{3})/g, "$1" + sep) : "") +
     (typeof value === "bigint" ? "n" : "")
@@ -1342,6 +1348,7 @@ function stringifyNumber(value: number | bigint, sep: "none" | (string & {})): s
 
 /**
  * Check if a name is a valid JavaScript identifier.
+ * @returns
  */
 function isIdentifier(name: string): boolean {
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
@@ -1382,6 +1389,7 @@ function isObject(value: unknown): value is object {
  * @returns
  */
 function isLikelyPrototype(value: object): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return value === (value.constructor && value.constructor.prototype);
 }
 
@@ -1396,6 +1404,7 @@ function isES6Class(value: unknown): boolean {
 
 /**
  * Check if an object is an ES module.
+ * @returns
  */
 function isESModule(value: object) {
   const desc = Object.getOwnPropertyDescriptor(value, Symbol.toStringTag);

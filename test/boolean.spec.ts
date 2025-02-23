@@ -32,11 +32,7 @@ describe("Wrapper object for booleans", () => {
   });
 
   it("should show subclass of `Boolean`", () => {
-    class MyBoolean extends Boolean {
-      constructor(...args: any[]) {
-        super(...args);
-      }
-    }
+    class MyBoolean extends Boolean {}
 
     expect(show(new MyBoolean(true))).toEqual("[Boolean (MyBoolean): true]");
     expect(inspect(new MyBoolean(true))).toEqual(util.inspect(new MyBoolean(true)));

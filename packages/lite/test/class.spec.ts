@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/class-literal-property-style */
+/* eslint-disable @typescript-eslint/no-extraneous-class */
+
 import util from "node:util";
 
 import { describe, expect, it } from "vitest";

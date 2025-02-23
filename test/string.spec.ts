@@ -277,11 +277,7 @@ describe("Wrapper object for strings", () => {
   });
 
   it("should show subclass of `String`", () => {
-    class MyString extends String {
-      constructor(...args: any[]) {
-        super(...args);
-      }
-    }
+    class MyString extends String {}
 
     expect(show(new MyString("foo"))).toEqual('[String (MyString): "foo"]');
     expect(inspect(new MyString("foo"))).toEqual(util.inspect(new MyString("foo")));

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/class-literal-property-style */
+
 import util from "node:util";
 
 import { describe, expect, it } from "vitest";
@@ -24,11 +26,7 @@ describe("Date", () => {
   });
 
   it("should show subclass of `Date`", () => {
-    class MyDate extends Date {
-      constructor(value: string | number | Date) {
-        super(value);
-      }
-    }
+    class MyDate extends Date {}
     const date = new MyDate("2025-01-01T00:00:00.000Z");
 
     expect(show(date)).toEqual("MyDate 2025-01-01T00:00:00.000Z");
@@ -60,10 +58,6 @@ describe("Date", () => {
     );
 
     class MyDate extends Date {
-      constructor(...args: ConstructorParameters<DateConstructor>) {
-        super(...args);
-      }
-
       get [Symbol.toStringTag]() {
         return "MyDate1";
       }

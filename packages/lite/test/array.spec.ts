@@ -162,11 +162,7 @@ describe("Array", () => {
   });
 
   it("should show subclass of `Array` with a `ClassName(size)` prefix", () => {
-    class MyArray extends Array {
-      constructor(...args: any[]) {
-        super(...args);
-      }
-    }
+    class MyArray extends Array {}
 
     expect(show(new MyArray())).toEqual("MyArray(0) []");
     expect(inspect(new MyArray())).toEqual(util.inspect(new MyArray()));

@@ -119,9 +119,9 @@ describe("Function", () => {
 
   it("should show subclass of regular functions", () => {
     const GeneratorFunction = function* () {}.constructor as GeneratorFunctionConstructor;
-    const AsyncFunction = async function () {}.constructor as {
-      new (...args: string[]): (...args: never) => Promise<unknown>;
-    };
+    const AsyncFunction = async function () {}.constructor as new (
+      ...args: string[]
+    ) => (...args: never) => Promise<unknown>;
     const AsyncGeneratorFunction = async function* () {}
       .constructor as AsyncGeneratorFunctionConstructor;
 

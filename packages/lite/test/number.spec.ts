@@ -93,11 +93,7 @@ describe("Wrapper object for numbers", () => {
   });
 
   it("should show subclass of `Number`", () => {
-    class MyNumber extends Number {
-      constructor(...args: any[]) {
-        super(...args);
-      }
-    }
+    class MyNumber extends Number {}
 
     expect(show(new MyNumber(42))).toEqual("[Number (MyNumber): 42]");
     expect(inspect(new MyNumber(42))).toEqual(util.inspect(new MyNumber(42)));

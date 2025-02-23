@@ -218,7 +218,7 @@ function stringify(
   let result = "";
 
   const restLineLength = () =>
-    result.indexOf("\n") === -1 ?
+    !result.includes("\n") ?
       options.restLineLength - result.length
     : breakLength - result.slice(result.lastIndexOf("\n") + 1).length;
 
@@ -257,6 +257,7 @@ function stringify(
   }
 
   // between
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   else if (type === "between") {
     const { close, open, values } = node;
 
@@ -474,7 +475,6 @@ function buildTree(
       // Callable (function / ES6 class)
       else if (typeof value === "function") {
         let str: string;
-        let type = "Function";
         // ES6 class
         if (isES6Class(value)) {
           const proto: unknown = Object.getPrototypeOf(value);
@@ -493,7 +493,7 @@ function buildTree(
         // Other callable objects (functions)
         else {
           // The type of the function (`Function`, `GeneratorFunction`, `AsyncFunction`, etc.)
-          type =
+          const type =
             value instanceof Cached.GeneratorFunction ? "GeneratorFunction"
             : value instanceof Cached.AsyncFunction ? "AsyncFunction"
             : value instanceof Cached.AsyncGeneratorFunction ? "AsyncGeneratorFunction"
@@ -898,6 +898,7 @@ function getClassName(value: object): string {
     const proto = Object.getPrototypeOf(value);
     return (proto.constructor && proto.constructor.name) || "Object";
   }
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return (value.constructor && value.constructor.name) || "Object";
 }
 
@@ -911,12 +912,13 @@ function getClassName(value: object): string {
  *
  * Otherwise, return `null`.
  * @param value The object to get the `Symbol.toStringTag` of.
+ * @returns
  */
 function getToStringTag(
   value: object,
   showHidden: NonNullable<ShowOptions["showHidden"]>,
 ): string | null {
-  const toStringTag = value[Symbol.toStringTag as keyof typeof value];
+  const toStringTag: unknown = value[Symbol.toStringTag as keyof typeof value];
   return (
       typeof toStringTag === "string" &&
         toStringTag &&
@@ -963,9 +965,13 @@ function stringifyString(value: string, quoteStyle: "single" | "double"): string
  */
 function stringifyNumber(value: number | bigint, sep: "none" | (string & {})): string {
   if (sep === "none")
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     return (Object.is(value, -0) ? "-0" : value) + (typeof value === "bigint" ? "n" : "");
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   const parts = (Object.is(value, -0) ? "-0" : "" + value).split(".");
   return (
+    // TODO: Refactor this slow regex to a faster implementation
+    // eslint-disable-next-line sonarjs/slow-regex
     parts[0]!.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1" + sep) +
     (parts[1] ? "." + parts[1].replace(/(\d{3})/g, "$1" + sep) : "") +
     (typeof value === "bigint" ? "n" : "")
@@ -974,6 +980,7 @@ function stringifyNumber(value: number | bigint, sep: "none" | (string & {})): s
 
 /**
  * Check if a name is a valid JavaScript identifier.
+ * @returns
  */
 function isIdentifier(name: string): boolean {
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
@@ -1014,6 +1021,7 @@ function isObject(value: unknown): value is object {
  * @returns
  */
 function isLikelyPrototype(value: object): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   return value === (value.constructor && value.constructor.prototype);
 }
 
@@ -1028,6 +1036,7 @@ function isES6Class(value: unknown): boolean {
 
 /**
  * Check if an object is an ES module.
+ * @returns
  */
 function isESModule(value: object) {
   const desc = Object.getOwnPropertyDescriptor(value, Symbol.toStringTag);

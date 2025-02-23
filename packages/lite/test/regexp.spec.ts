@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/class-literal-property-style */
+
 import util from "node:util";
 
 import { describe, expect, it } from "vitest";
@@ -13,11 +15,7 @@ describe("RegExp", () => {
   });
 
   it("should show subclass of `RegExp`", () => {
-    class MyRegExp extends RegExp {
-      constructor(...args: ConstructorParameters<RegExpConstructor>) {
-        super(...args);
-      }
-    }
+    class MyRegExp extends RegExp {}
 
     expect(show(new MyRegExp("foo", "g"))).toEqual("MyRegExp /foo/g");
     expect(inspect(new MyRegExp("foo", "g"))).toEqual(util.inspect(new MyRegExp("foo", "g")));
@@ -37,10 +35,6 @@ describe("RegExp", () => {
     expect(inspect(regexpWithDifferentTag)).toEqual(util.inspect(regexpWithDifferentTag));
 
     class MyRegExp extends RegExp {
-      constructor(...args: ConstructorParameters<RegExpConstructor>) {
-        super(...args);
-      }
-
       get [Symbol.toStringTag]() {
         return "MyRegExp1";
       }

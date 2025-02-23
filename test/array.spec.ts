@@ -167,6 +167,7 @@ describe("Array", () => {
 
   it("should show subclass of `Array` with a `ClassName(size)` prefix", () => {
     class MyArray extends Array {
+      // eslint-disable-next-line @typescript-eslint/no-useless-constructor
       constructor(...args: any[]) {
         super(...args);
       }
