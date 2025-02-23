@@ -18,10 +18,14 @@ export interface ShowOptions {
    */
   breakLength?: number;
   /**
-   * Whether to show non-enumerable properties.
+   * Whether to show non-enumerable properties, should be `"none"` or `"always"`.
+   *
+   * For compatibility with Node.js’s `util.inspect`, `true` is also accepted as `"always"`, and
+   * `false` is also accepted as `"none"`, but it is recommended to use the string values for
+   * clarity.
    * @default "none"
    */
-  showHidden?: "none" | "always";
+  showHidden?: "none" | "always" | boolean;
   /**
    * Whether to inspect getters.
    *
@@ -561,7 +565,10 @@ function buildTree(
           continue;
         }
         // Hide non-enumerable keys when `showHidden` is `"none"`
-        if (showHidden !== "none" || Object.getOwnPropertyDescriptor(value, key)!.enumerable)
+        if (
+          (showHidden !== "none" && showHidden !== false) ||
+          Object.getOwnPropertyDescriptor(value, key)!.enumerable
+        )
           otherKeys.push(key);
       }
       if (sorted)
@@ -913,7 +920,7 @@ function getToStringTag(
   return (
       typeof toStringTag === "string" &&
         toStringTag &&
-        (showHidden !== "none" ?
+        (showHidden !== "none" && showHidden !== false ?
           !Object.prototype.hasOwnProperty.call(value, Symbol.toStringTag)
         : !Object.prototype.propertyIsEnumerable.call(value, Symbol.toStringTag)) &&
         toStringTag !== getClassName(value)
