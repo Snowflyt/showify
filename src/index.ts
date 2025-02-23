@@ -523,7 +523,11 @@ function buildTree(
       // `Date`, `RegExp` and `Error`
       if (value instanceof Date || value instanceof RegExp) {
         const type = value instanceof Date ? "Date" : "RegExp";
-        let str = type === "Date" ? (value as Date).toISOString() : value.toString();
+        let str =
+          type === "Date" ?
+            isNaN(value as any) ? "Invalid Date"
+            : (value as Date).toISOString()
+          : value.toString();
         // The rule of `Symbol.toStringTag` for `Date`s and `RegExp`s is different from other
         // objects, so we should handle it here.
         const toStringTag = getToStringTag(value, showHidden);

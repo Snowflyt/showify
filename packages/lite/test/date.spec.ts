@@ -14,6 +14,13 @@ describe("Date", () => {
     expect(inspect(date)).toEqual(util.inspect(date));
   });
 
+  it("should show invalid dates", () => {
+    const date = new Date("foo");
+
+    expect(show(date)).toEqual("Invalid Date");
+    expect(inspect(date)).toEqual(util.inspect(date));
+  });
+
   it("should show subclass of `Date`", () => {
     class MyDate extends Date {
       constructor(value: string | number | Date) {
