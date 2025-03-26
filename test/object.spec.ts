@@ -263,4 +263,14 @@ describe("Object", () => {
     expect(inspect(obj)).toEqual(util.inspect(obj));
     expect(inspect(obj, { colors: true })).toEqual(util.inspect(obj, { colors: true }));
   });
+
+  it("should call `.toJSON()` method", () => {
+    const obj = {
+      toJSON() {
+        return { foo: "bar" };
+      },
+    };
+
+    expect(show(obj)).toEqual('{ foo: "bar" }');
+  });
 });

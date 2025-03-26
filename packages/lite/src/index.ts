@@ -3,6 +3,11 @@
  */
 export interface ShowOptions {
   /**
+   * Whether to call `toJSON` on the value before stringifying it (if available).
+   * @default true
+   */
+  callToJSON?: boolean;
+  /**
    * The maximum depth to show.
    * @default Infinity
    */
@@ -173,6 +178,7 @@ export declare namespace show {
 }
 Object.defineProperty(show, "defaultOptions", {
   get: (): Required<ShowOptions> => ({
+    callToJSON: true,
     depth: Infinity,
     indent: 0,
     breakLength: 80,
@@ -315,6 +321,7 @@ function buildTree(
   const {
     ancestors,
     arrayBracketSpacing,
+    callToJSON,
     getters,
     maxArrayLength,
     maxStringLength,
@@ -396,6 +403,7 @@ function buildTree(
       for (const { if: predicate, then: serializer } of serializers)
         if (predicate(value, options)) {
           const newOptions = {
+            callToJSON,
             depth: options.depth,
             showHidden,
             getters,
@@ -415,6 +423,17 @@ function buildTree(
           } satisfies SerializerOptions;
           return { ...serializer(value, newOptions, expand), ref: value };
         }
+
+      if (
+        callToJSON &&
+        !(value instanceof Date) &&
+        typeof (value as { toJSON?: unknown }).toJSON === "function"
+      )
+        return expand(
+          (value as { toJSON: () => unknown }).toJSON(),
+          // Keep all options as is
+          { omittedKeys, level: options.level, ancestors },
+        );
 
       /* Initial setup */
       let bodyStyle: "Array" | "Object" = "Object";

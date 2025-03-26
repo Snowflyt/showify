@@ -237,4 +237,14 @@ describe("Object", () => {
     expect(show(obj)).toEqual('Object [CustomObject] { foo: "bar" }');
     expect(inspect(obj)).toEqual(util.inspect(obj));
   });
+
+  it("should call `.toJSON()` method", () => {
+    const obj = {
+      toJSON() {
+        return { foo: "bar" };
+      },
+    };
+
+    expect(show(obj)).toEqual('{ foo: "bar" }');
+  });
 });

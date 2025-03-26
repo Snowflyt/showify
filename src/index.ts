@@ -3,6 +3,11 @@
  */
 export interface ShowOptions {
   /**
+   * Whether to call `toJSON` on the value before stringifying it (if available).
+   * @default true
+   */
+  callToJSON?: boolean;
+  /**
    * The maximum depth to show.
    * @default Infinity
    */
@@ -241,6 +246,7 @@ export declare namespace show {
 }
 Object.defineProperty(show, "defaultOptions", {
   get: (): RequiredShowOptions => ({
+    callToJSON: true,
     depth: Infinity,
     indent: 0,
     breakLength: 80,
@@ -404,6 +410,7 @@ function buildTree(
     ancestors,
     arrayBracketSpacing,
     c,
+    callToJSON,
     colors,
     getters,
     maxArrayLength,
@@ -494,6 +501,7 @@ function buildTree(
       for (const { if: predicate, then: serializer } of serializers)
         if (predicate(value, options)) {
           const newOptions = {
+            callToJSON,
             depth: options.depth,
             showHidden,
             getters,
@@ -516,6 +524,17 @@ function buildTree(
           } satisfies SerializerOptions;
           return { ...serializer(value, newOptions, expand), ref: value };
         }
+
+      if (
+        callToJSON &&
+        !(value instanceof Date) &&
+        typeof (value as { toJSON?: unknown }).toJSON === "function"
+      )
+        return expand(
+          (value as { toJSON: () => unknown }).toJSON(),
+          // Keep all options as is
+          { omittedKeys, level: options.level, ancestors },
+        );
 
       /* Initial setup */
       let bodyStyle: "Array" | "Object" = "Object";
@@ -666,7 +685,7 @@ function buildTree(
         // For strings, it might be a long multiline string that should be broken into lines,
         // so we should expand the value here
         if (type === "String") {
-          const data = (value as unknown as { valueOf(): string }).valueOf();
+          const data = (value as { valueOf(): string }).valueOf();
           // A wrapped string has positive integer keys from 0 to `length - 1`,
           // e.g., `new String("foo")` has keys `0`, `1`, `2`.
           // We should omit them here to avoid showing them in the output.
