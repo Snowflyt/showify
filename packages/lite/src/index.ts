@@ -441,17 +441,21 @@ function buildTree(
       } else if (value instanceof Error) {
         if (value.stack) {
           let str = value.stack;
+          let stackPrefix = className + (value.message ? `: ${value.message}` : "");
           // The rule of `Symbol.toStringTag` for `Error`s is different from other
           // objects, so we should handle it here.
           const toStringTag = getToStringTag(value, showHidden);
-          if (toStringTag)
-            str = str.replace(
-              // Escape special characters in the class name
-              // Copied from: https://stackoverflow.com/a/3561711/21418758
-              new RegExp(`^${className.replace(/[/\-\\^$*+?.()|[\]{}]/, "\\$&")}(?=:|$|\n)`, "m"),
-              `${className} [${toStringTag}]`,
+          if (toStringTag) {
+            // Escape special characters in the class name
+            // Copied from: https://stackoverflow.com/a/3561711/21418758
+            const errorNameRegEx = new RegExp(
+              `^${className.replace(/[/\-\\^$*+?.()|[\]{}]/, "\\$&")}(?=:|$|\n)`,
+              "m",
             );
-          prefix = text(isValidErrorStack(value.stack) ? str : `[${str}]`);
+            str = str.replace(errorNameRegEx, `${className} [${toStringTag}]`);
+            stackPrefix = stackPrefix.replace(errorNameRegEx, `${className} [${toStringTag}]`);
+          }
+          prefix = text(formatErrorStack(str, stackPrefix) || `[${str}]`);
         } else {
           const toStringTag = getToStringTag(value, showHidden);
           const classNameWithTag = className + (toStringTag ? ` [${toStringTag}]` : "");
@@ -1003,14 +1007,39 @@ function isPositiveIntegerKey(key: string | symbol): key is `${number}` {
 }
 
 /**
- * Check if an error stack is valid.
- * @param stack The stack to check.
+ * Format an error stack if it is valid, otherwise return `null`.
+ * @param stack The stack to format.
+ * @param prefix The prefix used to format the stack.
  * @returns
  */
-function isValidErrorStack(stack: string): boolean {
+function formatErrorStack(stack: string, prefix: string): string | null {
   const lines = stack.split("\n");
-  if (lines.length < 2) return false;
-  return lines.slice(1).some((line) => line.startsWith("    at"));
+  if (!lines.length) return null;
+
+  // V8
+  if (
+    lines.length >= 2 &&
+    !lines[0]!.startsWith("    at") &&
+    lines.slice(1).some((line) => line.startsWith("    at"))
+  )
+    return stack;
+
+  // SpiderMonkey & JavaScriptCore
+  if (lines.every((line) => !line || line.includes("@")))
+    return (
+      prefix +
+      "\n" +
+      lines
+        .filter((line) => line && !line.endsWith("@"))
+        .map((line) => "    at " + line.replace(/^@/, "<anonymous>@").replace(/@/, " (") + ")")
+        .join("\n")
+    );
+
+  // QuickJS
+  if (lines[lines.length - 1] === "" && lines.every((line) => !line || line.startsWith("    at")))
+    return prefix + "\n" + lines.filter(Boolean).join("\n");
+
+  return null;
 }
 
 /**
