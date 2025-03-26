@@ -29,6 +29,17 @@ describe("Array", () => {
     expect(inspect([1, , 3, , , 6], { colors: true })).toEqual(
       util.inspect([1, , 3, , , 6], { colors: true }),
     );
+    // Trailing empty slots
+    expect(show([1, 2, 3, ,])).toEqual("[1, 2, 3, <1 empty item>]");
+    expect(inspect([1, 2, 3, ,])).toEqual(util.inspect([1, 2, 3, ,]));
+    expect(inspect([1, 2, 3, ,], { colors: true })).toEqual(
+      util.inspect([1, 2, 3, ,], { colors: true }),
+    );
+    expect(show([1, 2, 3, , ,])).toEqual("[1, 2, 3, <2 empty items>]");
+    expect(inspect([1, 2, 3, , ,])).toEqual(util.inspect([1, 2, 3, , ,]));
+    expect(inspect([1, 2, 3, , ,], { colors: true })).toEqual(
+      util.inspect([1, 2, 3, , ,], { colors: true }),
+    );
   });
 
   it("should show arrays with brackets spacing if `arrayBracketSpacing` is `true`", () => {

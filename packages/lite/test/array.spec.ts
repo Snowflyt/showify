@@ -25,6 +25,11 @@ describe("Array", () => {
     expect(inspect([1, , 3])).toEqual(util.inspect([1, , 3]));
     expect(show([1, , 3, , , 6])).toEqual("[1, <1 empty item>, 3, <2 empty items>, 6]");
     expect(inspect([1, , 3, , , 6])).toEqual(util.inspect([1, , 3, , , 6]));
+    // Trailing empty slots
+    expect(show([1, 2, 3, ,])).toEqual("[1, 2, 3, <1 empty item>]");
+    expect(inspect([1, 2, 3, ,])).toEqual(util.inspect([1, 2, 3, ,]));
+    expect(show([1, 2, 3, , ,])).toEqual("[1, 2, 3, <2 empty items>]");
+    expect(inspect([1, 2, 3, , ,])).toEqual(util.inspect([1, 2, 3, , ,]));
   });
 
   it("should show arrays with brackets spacing if `arrayBracketSpacing` is `true`", () => {
@@ -162,7 +167,12 @@ describe("Array", () => {
   });
 
   it("should show subclass of `Array` with a `ClassName(size)` prefix", () => {
-    class MyArray extends Array {}
+    class MyArray extends Array {
+      // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+      constructor(...args: any[]) {
+        super(...args);
+      }
+    }
 
     expect(show(new MyArray())).toEqual("MyArray(0) []");
     expect(inspect(new MyArray())).toEqual(util.inspect(new MyArray()));

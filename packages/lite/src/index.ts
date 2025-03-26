@@ -722,6 +722,13 @@ function buildTree(
           entries.splice(pointer, 0, text(str));
           pointer += 2;
         }
+        // Insert trailing empty item markers if necessary
+        const lastKey = integerKeys[integerKeys.length - 1];
+        const len = value.length;
+        if (lastKey && lastKey < len - 1) {
+          const str = `<${len - lastKey - 1} empty item${len - lastKey - 1 === 1 ? "" : "s"}>`;
+          entries.push(text(str));
+        }
       }
 
       /* Build body */
