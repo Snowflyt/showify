@@ -14,7 +14,7 @@ export interface ShowOptions {
   depth?: number;
   /**
    * The number of spaces to use for indentation.
-   * @default 2
+   * @default 0
    */
   indent?: number;
   /**
