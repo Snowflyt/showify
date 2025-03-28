@@ -55,9 +55,13 @@ export interface ShowOptions {
    * - If set to `"get"`, only getters without a corresponding setter are inspected.
    * - If set to `"set"`, only setters with a corresponding getter are inspected.
    * - If set to `"all"`, all getters are inspected.
+   *
+   * For compatibility with Node.js’s `util.inspect`, `true` is also accepted as `"always"`, and
+   * `false` is also accepted as `"none"`, but it is recommended to use the string values for
+   * clarity.
    * @default "none"
    */
-  getters?: "none" | "get" | "set" | "all";
+  getters?: "none" | "get" | "set" | "all" | boolean;
   /**
    * Whether to sort the keys of objects (including `Map`s and `Set`s) in the resulting string.
    */
@@ -773,7 +777,7 @@ function buildTree(
           return pair(text(`${keyDisplay}: `), expand(value[key as keyof typeof value]));
 
         const shouldExpand =
-          (getters === "all" && !!desc.get) ||
+          ((getters === "all" || getters === true) && !!desc.get) ||
           (getters === "get" && desc.get && !desc.set) ||
           (getters === "set" && desc.get && !!desc.set);
 

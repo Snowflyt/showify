@@ -44,7 +44,7 @@ export interface ShowOptions {
   /**
    * Whether to sort the keys of objects (including `Map`s and `Set`s) in the resulting string.
    */
-  sorted?: boolean;
+  getters?: "none" | "get" | "set" | "all" | boolean;
   /**
    * A set of keys to omit from the output.
    *
@@ -640,7 +640,7 @@ function buildTree(
           return pair(text(`${keyDisplay}: `), expand(value[key as keyof typeof value]));
 
         const shouldExpand =
-          (getters === "all" && !!desc.get) ||
+          ((getters === "all" || getters === true) && !!desc.get) ||
           (getters === "get" && desc.get && !desc.set) ||
           (getters === "set" && desc.get && !!desc.set);
 
