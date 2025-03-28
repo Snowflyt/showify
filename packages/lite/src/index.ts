@@ -426,6 +426,7 @@ function buildTree(
 
       if (
         callToJSON &&
+        !omittedKeys.has("toJSON") &&
         !(value instanceof Date) &&
         typeof (value as { toJSON?: unknown }).toJSON === "function"
       )

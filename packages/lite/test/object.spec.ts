@@ -243,8 +243,12 @@ describe("Object", () => {
       toJSON() {
         return { foo: "bar" };
       },
+      bar: "baz",
     };
 
     expect(show(obj)).toEqual('{ foo: "bar" }');
+
+    // `omittedKeys` should disable `.toJSON()`
+    expect(show(obj, { omittedKeys: new Set(["toJSON"]) })).toEqual('{ bar: "baz" }');
   });
 });
