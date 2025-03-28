@@ -70,7 +70,7 @@ The `show()` function accepts an optional second argument for options. Some comm
 - **`sorted`**: Whether to sort the keys of objects (including `Map`s and `Set`s) in the resulting string, defaults to `false`.
 - **`quoteStyle`**: Preferred quote style for strings, should be `"single"`, `"double"`, `"backtick"`, or an array of them to try in order, defaults to `["double", "single", "backtick"]`.
 - **`trailComma`**: Whether to add a trailing comma to the last element of an array or object, should be `"none"`, `"always"` or `"auto"` (add trailing comma only when the last item is on a separate line), defaults to `"none"`.
-- **`callToJSON`**: Whether to call `toJSON()` on the value before stringifying it (if available), defaults to `true`.
+- **`callToJSON`**: Whether to call `toJSON()` on the value before stringifying it (if available), defaults to `false`.
 - **`colors`**: Enable ANSI colors, defaults to `false`.
 
 **showify** supports many other options. For a complete list of options, see [the available options section](#available-options) below.
@@ -139,7 +139,7 @@ Aside from the features listed above, **showify** also supports many more specia
 
 ### Known differences from `util.inspect` in Node.js
 
-- **Default options:** **showify** uses slightly different default options compared to `util.inspect` in Node.js. For example, **showify** uses infinite depth, prefers double quotes, calls `.toJSON()`, and does not break lines by default, while `util.inspect` uses a depth of `2`, prefers single quotes, does not call `.toJSON()` and breaks lines by default. See [the related FAQ](#how-can-i-achieve-the-exactly-default-output-as-utilinspect-in-nodejs) if you want to achieve the exact same default output as `util.inspect` in Node.js.
+- **Default options:** **showify** uses slightly different default options compared to `util.inspect` in Node.js. For example, **showify** uses infinite depth, prefers double quotes, and does not break lines by default, while `util.inspect` uses a depth of `2`, prefers single quotes, and breaks lines by default. See [the related FAQ](#how-can-i-achieve-the-exactly-default-output-as-utilinspect-in-nodejs) if you want to achieve the exact same default output as `util.inspect` in Node.js.
 - **Custom serialization:** `util.inspect` supports custom serialization via the special `Symbol(nodejs.util.inspect.custom)` property, while **showify** does not. Instead, **showify** offers similar functionality with a `serializers` option in the `show` function.
 - **Break length:** **showify** tries to break lines exactly at `breakLength` characters, while `util.inspect` may break lines at slightly different positions due to a different algorithm for calculating the break position.
 - **Array break:** When breaking arrays, **showify** always places one element per line, while `util.inspect` might place multiple elements on a single line, e.g., `[\n 1, 2, 3, 4, 5,\n 6, 7, 8, 9, 10\n]`.
@@ -153,6 +153,7 @@ Aside from the features listed above, **showify** also supports many more specia
 - **Maximum recursion depth:** Values are stringified up to the specified `depth` (defaults to `Infinity`). When stringifying a value, if the current depth exceeds the specified `depth`, **showify** checks if further recursion is necessary. If recursion is not needed, it simply stringifies the value as is. If further recursion is needed, **showify** displays `[${className}]` and stops further recursion. A special case occurs when the value’s `[[Prototype]]` is `null`, in which case the value is displayed as `[Object: null prototype]`.
 - **Break length:** Lines are broken at `breakLength` (defaults to `80`) characters if possible. When stringifying a value, **showify** first tries the inline format. If the inline format doesn't fit within the `breakLength`, it switches to the multiline format. This process is repeated recursively for each child value.
 - **Circular references:** Objects with circular references are displayed with a reference pointer. For example, `<ref *1> { foo: [ [Circular *1] ], bar: <ref *2> { inner: [Circular *2], obj: [Circular *1] } }`.
+- **`.toJSON()`**: If `callToJSON` is `true`, **showify** calls `toJSON()` on the value before stringifying it (if available).
 - **Extra keys:** Extra keys of any special object (e.g., wrapper objects for primitives, errors, promises, functions, arrays) are displayed. For example, `[Function: foo] { bar: "baz" }` or `[1, 2, 3, foo: "bar"]`.
 - **Class name:** An object’s `${className}` is defined as:
   - If the object is a prototype of a class (by checking if `value === value.constructor.prototype`), `Object.getPrototypeOf(value).constructor.name`.
@@ -201,7 +202,6 @@ Aside from the features listed above, **showify** also supports many more specia
 
 **Regular objects:**
 
-- **`.toJSON()`**: If `callToJSON` is `true`, **showify** calls `toJSON()` on the value before stringifying it (if available).
 - **Module:** `Module` objects are displayed as `[Module]` if its `[[Prototype]]` is not null, or `[Module: null prototype]` otherwise.
 - **Object:** Other objects are displayed as `{ key: value1, "non identifier key": value2, [Symbol(id)]: value3, ... }`. `${className}` is displayed if it’s not `"Object"` and no prefix is already defined, e.g., `MyClass { key1: value1, key2: value2, ... }`. Objects with a null `[[Prototype]]` are displayed as `[Object: null prototype]`.
 - **Object keys:** String keys are displayed as `key` if they are valid identifiers, or `"key"` otherwise. Symbol keys are displayed as `[Symbol(key)]`. If a key is non-enumerable, it is displayed as `[key]` (NOTE: non-enumerable keys are only displayed if `showHidden` is not `"none"`).
@@ -211,7 +211,7 @@ Aside from the features listed above, **showify** also supports many more specia
 
 | Option                | Type                                                                      | Default                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | --------------------- | ------------------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `callToJSON`          | `boolean`                                                                 | `true`                             | Whether to call `toJSON()` on the value before stringifying it (if available).                                                                                                                                                                                                                                                                                                                                                         |
+| `callToJSON`          | `boolean`                                                                 | `false`                            | Whether to call `toJSON()` on the value before stringifying it (if available).                                                                                                                                                                                                                                                                                                                                                         |
 | `depth`               | `number`                                                                  | `Infinity`                         | Maximum recursion depth of the object to be inspected, similar to `util.inspect`.                                                                                                                                                                                                                                                                                                                                                      |
 | `indent`              | `number`                                                                  | `0`                                | Number of spaces to indent the output. If `indent` is `0`, the output is not indented.                                                                                                                                                                                                                                                                                                                                                 |
 | `breakLength`         | `number`                                                                  | `80`                               | Maximum line length before breaking. This option is ignored if `indent` is `0`.                                                                                                                                                                                                                                                                                                                                                        |
@@ -523,7 +523,6 @@ While **showify** behaves slightly differently from `util.inspect` in rare cases
 
 ```javascript
 show(value, {
-  callToJSON: false,
   depth: 2,
   indent: 2,
   quoteStyle: ["single", "double", "backtick"],

@@ -9,7 +9,6 @@ import { show } from "../src";
  */
 export function inspect(value: unknown, options?: ShowOptions) {
   return show(value, {
-    callToJSON: false,
     depth: 2,
     indent: 2,
     quoteStyle: ["single", "double", "backtick"],

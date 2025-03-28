@@ -4,7 +4,7 @@
 export interface ShowOptions {
   /**
    * Whether to call `toJSON` on the value before stringifying it (if available).
-   * @default true
+   * @default false
    */
   callToJSON?: boolean;
   /**
@@ -178,7 +178,7 @@ export declare namespace show {
 }
 Object.defineProperty(show, "defaultOptions", {
   get: (): Required<ShowOptions> => ({
-    callToJSON: true,
+    callToJSON: false,
     depth: Infinity,
     indent: 0,
     breakLength: 80,
