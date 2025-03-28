@@ -246,9 +246,11 @@ describe("Object", () => {
       bar: "baz",
     };
 
-    expect(show(obj)).toEqual('{ foo: "bar" }');
+    expect(show(obj, { callToJSON: true })).toEqual('{ foo: "bar" }');
 
     // `omittedKeys` should disable `.toJSON()`
-    expect(show(obj, { omittedKeys: new Set(["toJSON"]) })).toEqual('{ bar: "baz" }');
+    expect(show(obj, { callToJSON: true, omittedKeys: new Set(["toJSON"]) })).toEqual(
+      '{ bar: "baz" }',
+    );
   });
 });
