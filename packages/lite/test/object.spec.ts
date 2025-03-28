@@ -2,6 +2,7 @@ import util from "node:util";
 
 import { describe, expect, it } from "vitest";
 
+import type { InspectOptions, InspectOptionsStylized } from "../src";
 import { show } from "../src";
 
 import { inspect } from "./test-utils";
@@ -238,7 +239,7 @@ describe("Object", () => {
     expect(inspect(obj)).toEqual(util.inspect(obj));
   });
 
-  it("should call `.toJSON()` method", () => {
+  it("should call `.toJSON()` method if `callToJSON` is `true`", () => {
     const obj = {
       toJSON() {
         return { foo: "bar" };
@@ -252,5 +253,87 @@ describe("Object", () => {
     expect(show(obj, { callToJSON: true, omittedKeys: new Set(["toJSON"]) })).toEqual(
       '{ bar: "baz" }',
     );
+  });
+
+  it('should bet compatible with Node.js’s `Symbol.for("nodejs.util.inspect.custom")`', () => {
+    // Adapted from: https://nodejs.org/api/util.html#utilinspectcustom
+    class Password {
+      constructor(public value: string) {}
+
+      toString() {
+        return "xxxxxxxx";
+      }
+
+      [Symbol.for("nodejs.util.inspect.custom")]() {
+        return `Password <${this.toString()}>`;
+      }
+    }
+
+    const password = new Password("r0sebud");
+    expect(show(password)).toEqual("Password <xxxxxxxx>");
+    expect(inspect(password)).toEqual(util.inspect(password));
+
+    // Adapted from: https://nodejs.org/api/util.html#custom-inspection-functions-on-objects
+    class Box<T> {
+      constructor(public value: T) {}
+
+      [Symbol.for("nodejs.util.inspect.custom")](
+        depth: number,
+        options: InspectOptionsStylized,
+        inspect: (value: unknown, options?: InspectOptions) => any,
+      ) {
+        if (depth < 0) return options.stylize("[Box]", "special");
+
+        const newOptions = Object.assign({}, options, {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          depth: options.depth === null ? null : options.depth - 1,
+        });
+
+        const padding = " ".repeat(5);
+        const inner = inspect(this.value, newOptions).replace(/\n/g, `\n${padding}`);
+        return `${options.stylize("Box", "special")}< ${inner} >`;
+      }
+    }
+
+    let box = new Box<unknown>(true);
+    expect(show(box)).toEqual("Box< true >");
+    expect(inspect(box)).toEqual(util.inspect(box));
+
+    const value = {
+      foo: "bar",
+      "Hello\nworld": [-0, 2n, NaN],
+      [Symbol("qux")]: { quux: "corge" },
+      map: new Map<any, any>([
+        ["foo", new Box("bar")],
+        [{ bar: 42 }, "qux"],
+      ]),
+    };
+    (value as any).circular = value;
+
+    box = new Box(value);
+    expect(show(box, { indent: 2 })).toEqual(
+      "Box< <ref *1> {\n" +
+        '       foo: "bar",\n' +
+        '       "Hello\\nworld": [-0, 2n, NaN],\n' +
+        '       map: Map(2) { "foo" => Box< "bar" >, { bar: 42 } => "qux" },\n' +
+        "       circular: [Circular *1],\n" +
+        '       [Symbol(qux)]: { quux: "corge" }\n' +
+        "     } >",
+    );
+    expect(inspect(box)).toEqual(util.inspect(box));
+
+    // Make sure `[Symbol.for("nodejs.util.inspect.custom")]()` prioritizes over `toJSON()`
+    const obj = {
+      foo: "this will not show up in the output",
+      toJSON() {
+        return { foo: "this will not show up in the output" };
+      },
+      [Symbol.for("nodejs.util.inspect.custom")]() {
+        return { bar: "baz" };
+      },
+    };
+
+    expect(show(obj)).toEqual('{ bar: "baz" }');
+    expect(inspect(obj)).toEqual(util.inspect(obj));
   });
 });
