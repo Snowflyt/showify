@@ -70,7 +70,6 @@ The `show()` function accepts an optional second argument for options. Some comm
 - **`sorted`**: Whether to sort the keys of objects (including `Map`s and `Set`s) in the resulting string, defaults to `false`.
 - **`quoteStyle`**: Preferred quote style for strings, should be `"single"`, `"double"`, `"backtick"`, or an array of them to try in order, defaults to `["double", "single", "backtick"]`.
 - **`trailComma`**: Whether to add a trailing comma to the last element of an array or object, should be `"none"`, `"always"` or `"auto"` (add trailing comma only when the last item is on a separate line), defaults to `"none"`.
-- **`callToJSON`**: Whether to call `toJSON()` on the value before stringifying it (if available), defaults to `false`.
 - **`colors`**: Enable ANSI colors, defaults to `false`.
 
 **showify** supports many other options. For a complete list of options, see [the available options section](#available-options) below.
@@ -140,7 +139,7 @@ Aside from the features listed above, **showify** also supports many more specia
 ### Known differences from `util.inspect` in Node.js
 
 - **Default options:** **showify** uses slightly different default options compared to `util.inspect` in Node.js. For example, **showify** uses infinite depth, prefers double quotes, and does not break lines by default, while `util.inspect` uses a depth of `2`, prefers single quotes, and breaks lines by default. See [the related FAQ](#how-can-i-achieve-the-exactly-default-output-as-utilinspect-in-nodejs) if you want to achieve the exact same default output as `util.inspect` in Node.js.
-- **Custom serialization:** `util.inspect` supports custom serialization via the special `Symbol(nodejs.util.inspect.custom)` property, while **showify** does not. Instead, **showify** offers similar functionality with a `serializers` option in the `show` function.
+- **Custom serialization:** **showify** supports custom serialization via both the special `Symbol(nodejs.util.inspect.custom)` property (compatible with Node.js) and through the `serializers` option in the `show` function, while `util.inspect` only supports the former.
 - **Break length:** **showify** tries to break lines exactly at `breakLength` characters, while `util.inspect` may break lines at slightly different positions due to a different algorithm for calculating the break position.
 - **Array break:** When breaking arrays, **showify** always places one element per line, while `util.inspect` might place multiple elements on a single line, e.g., `[\n 1, 2, 3, 4, 5,\n 6, 7, 8, 9, 10\n]`.
 - **Circular reference pointer:** **showify** always displays a reference pointer when the same object is referenced, while `util.inspect` does not always do so if the same object is referenced multiple times.
@@ -153,6 +152,7 @@ Aside from the features listed above, **showify** also supports many more specia
 - **Maximum recursion depth:** Values are stringified up to the specified `depth` (defaults to `Infinity`). When stringifying a value, if the current depth exceeds the specified `depth`, **showify** checks if further recursion is necessary. If recursion is not needed, it simply stringifies the value as is. If further recursion is needed, **showify** displays `[${className}]` and stops further recursion. A special case occurs when the value’s `[[Prototype]]` is `null`, in which case the value is displayed as `[Object: null prototype]`.
 - **Break length:** Lines are broken at `breakLength` (defaults to `80`) characters if possible. When stringifying a value, **showify** first tries the inline format. If the inline format doesn't fit within the `breakLength`, it switches to the multiline format. This process is repeated recursively for each child value.
 - **Circular references:** Objects with circular references are displayed with a reference pointer. For example, `<ref *1> { foo: [ [Circular *1] ], bar: <ref *2> { inner: [Circular *2], obj: [Circular *1] } }`.
+- **`.[Symbol.for("nodejs.util.inspect.custom")]()`**: If `callNodeInspect` is `true`, **showify** calls `[Symbol.for("nodejs.util.inspect.custom")]()` on the value before stringifying it (if available). This option takes precedence over `callToJSON`.
 - **`.toJSON()`**: If `callToJSON` is `true`, **showify** calls `toJSON()` on the value before stringifying it (if available).
 - **Extra keys:** Extra keys of any special object (e.g., wrapper objects for primitives, errors, promises, functions, arrays) are displayed. For example, `[Function: foo] { bar: "baz" }` or `[1, 2, 3, foo: "bar"]`.
 - **Class name:** An object’s `${className}` is defined as:
@@ -212,6 +212,7 @@ Aside from the features listed above, **showify** also supports many more specia
 | Option                | Type                                                                      | Default                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | --------------------- | ------------------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `callToJSON`          | `boolean`                                                                 | `false`                            | Whether to call `toJSON()` on the value before stringifying it (if available).                                                                                                                                                                                                                                                                                                                                                         |
+| `callNodeInspect`     | `boolean`                                                                 | `true`                             | Whether to call `[Symbol.for("nodejs.util.inspect.custom")]()` on the value before stringifying it (if available). This option takes precedence over `callToJSON`.                                                                                                                                                                                                                                                                     |
 | `depth`               | `number`                                                                  | `Infinity`                         | Maximum recursion depth of the object to be inspected, similar to `util.inspect`.                                                                                                                                                                                                                                                                                                                                                      |
 | `indent`              | `number`                                                                  | `0`                                | Number of spaces to indent the output. If `indent` is `0`, the output is not indented.                                                                                                                                                                                                                                                                                                                                                 |
 | `breakLength`         | `number`                                                                  | `80`                               | Maximum line length before breaking. This option is ignored if `indent` is `0`.                                                                                                                                                                                                                                                                                                                                                        |
@@ -234,7 +235,45 @@ Aside from the features listed above, **showify** also supports many more specia
 
 ### Custom Serializers
 
-**showify** supports custom serializers through the `serializers` option in the `show()` function. A serializer must implement the following interface:
+**showify** supports both the special `Symbol(nodejs.util.inspect.custom)` property (compatible with Node.js) and custom serializers through the `serializers` option in the `show()` function.
+
+**showify** aims to be fully compatible with Node.js’s `Symbol(nodejs.util.inspect.custom)` property. Examples from the [Node.js documentation](https://nodejs.org/api/util.html#custom-inspection-functions-on-objects) should work with **showify** as well. Here’s an example adapted from the Node.js documentation that works seamlessly with **showify**:
+
+```typescript
+import { type InspectOptions, type InspectOptionsStylized, show } from "showify";
+
+class Box {
+  constructor(value) {
+    this.value = value;
+  }
+
+  [Symbol.for("nodejs.util.inspect.custom")](
+    depth: number,
+    options: InspectOptionsStylized,
+    inspect: (value: unknown, options?: InspectOptions) => any,
+  ) {
+    if (depth < 0) {
+      return options.stylize("[Box]", "special");
+    }
+
+    const newOptions = Object.assign({}, options, {
+      depth: options.depth === null ? null : options.depth - 1,
+    });
+
+    // Five space padding because that’s the size of "Box< ".
+    const padding = " ".repeat(5);
+    const inner = inspect(this.value, newOptions).replace(/\n/g, `\n${padding}`);
+    return `${options.stylize("Box", "special")}< ${inner} >`;
+  }
+}
+
+const box = new Box(true);
+
+console.log(show(box, { colors: true, indent: 2, depth: 2 }));
+// "Box< true >"
+```
+
+While this approach works, we generally recommend using custom serializers through the `serializers` option in the `show()` function, as it is more flexible and allows for better control over the serialization process. In **showify**, a serializer must implement the following interface:
 
 ```typescript
 interface Serializer {

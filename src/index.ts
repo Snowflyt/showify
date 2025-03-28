@@ -8,6 +8,12 @@ export interface ShowOptions {
    */
   callToJSON?: boolean;
   /**
+   * Whether to call `Symbol.for("nodejs.util.inspect.custom")` on the value before stringifying it
+   * (if available). This option takes precedence over `callToJSON`.
+   * @default true
+   */
+  callNodeInspect?: boolean;
+  /**
    * The maximum depth to show.
    * @default Infinity
    */
@@ -251,6 +257,7 @@ export declare namespace show {
 Object.defineProperty(show, "defaultOptions", {
   get: (): RequiredShowOptions => ({
     callToJSON: false,
+    callNodeInspect: true,
     depth: Infinity,
     indent: 0,
     breakLength: 80,
@@ -408,12 +415,15 @@ function buildTree(
     refs: Map<object, number>;
     styles: Styles;
     c: ReturnType<typeof colorize.buildC>;
+    breakLength: number; // Only used for Node.js compatibility
+    referencePointer: boolean; // Only used for Node.js compatibility
   },
 ): Node {
   const {
     ancestors,
     arrayBracketSpacing,
     c,
+    callNodeInspect,
     callToJSON,
     colors,
     getters,
@@ -506,6 +516,7 @@ function buildTree(
         if (predicate(value, options)) {
           const newOptions = {
             callToJSON,
+            callNodeInspect,
             depth: options.depth,
             showHidden,
             getters,
@@ -529,6 +540,28 @@ function buildTree(
           return { ...serializer(value, newOptions, expand), ref: value };
         }
 
+      if (
+        callNodeInspect &&
+        !omittedKeys.has(NodeInspectSymbol) &&
+        !(value instanceof Date) &&
+        typeof (value as { [NodeInspectSymbol]?: unknown })[NodeInspectSymbol] === "function"
+      ) {
+        const result = (value as { [NodeInspectSymbol]: NodeCustomInspectFunction })[
+          NodeInspectSymbol
+        ](
+          options.depth - options.level,
+          convertToInspectOptions(options),
+          function inspect(value, options) {
+            return options ? show(value, convertToShowOptions(options)) : show(value);
+          },
+        );
+        if (typeof result === "string") return text(result);
+        return expand(
+          result,
+          // Keep all options as is
+          { omittedKeys, level: options.level, ancestors },
+        );
+      }
       if (
         callToJSON &&
         !omittedKeys.has("toJSON") &&
@@ -1064,6 +1097,9 @@ function between<const Nodes extends Node[]>(
 /**********************
  * Internal utilities *
  **********************/
+const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom");
+type NodeInspectSymbol = typeof NodeInspectSymbol;
+
 /**
  * Get a global value. This function works in all environments, including Node.js and
  * browsers.
@@ -1475,4 +1511,114 @@ function isESModule(value: object) {
     desc.enumerable === false &&
     desc.configurable === false
   );
+}
+
+/**
+ * Custom inspect function compatible with Node.js `Symbol.for("nodejs.util.inspect.custom")`.
+ */
+export type NodeCustomInspectFunction = (
+  depth: number,
+  options: InspectOptionsStylized,
+  inspect: (value: unknown, options?: InspectOptions) => any,
+) => any;
+/**
+ * Options compatible with `util.inspect`.
+ * @see {@link https://nodejs.org/api/util.html#util_util_inspect_object_options}
+ */
+export interface InspectOptions {
+  showHidden: boolean;
+  depth: number;
+  colors: boolean;
+  customInspect: boolean;
+  showProxy: boolean;
+  maxArrayLength: number;
+  maxStringLength: number;
+  breakLength: number;
+  compact: boolean;
+  sorted: boolean;
+  getters: "get" | "set" | boolean;
+  numericSeparator: boolean;
+}
+export interface InspectOptionsStylized extends InspectOptions {
+  stylize(text: string, styleType: keyof Styles | "module"): string;
+}
+
+const showifyOnlyOptions = [
+  "callToJSON",
+  "omittedKeys",
+  "quoteStyle",
+  "quoteKeys",
+  "trailingComma",
+  "arrayBracketSpacing",
+  "objectCurlySpacing",
+  "referencePointer",
+  "styles",
+  "serializers",
+];
+
+/**
+ * Convert {@linkcode SerializerOptions} to Node.js `util.inspect` options.
+ * @param opts The options to convert.
+ * @returns
+ */
+function convertToInspectOptions(
+  opts: SerializerOptions & {
+    breakLength: number;
+    referencePointer: boolean;
+    c: ReturnType<typeof colorize.buildC>;
+  },
+): InspectOptionsStylized {
+  return {
+    stylize: function stylize(text, styleType) {
+      if (styleType === "module") return text;
+      return opts.c[styleType](text);
+    },
+    showHidden: opts.showHidden !== "none" && opts.showHidden !== false,
+    depth: opts.depth - opts.level,
+    colors: opts.colors,
+    customInspect: opts.callNodeInspect,
+    showProxy: false, // Unsupported in this library, use a dummy value
+    maxArrayLength: opts.maxArrayLength,
+    maxStringLength: opts.maxStringLength,
+    breakLength: opts.breakLength,
+    compact: false, // Unsupported in this library, use a dummy value
+    sorted: opts.sorted,
+    // prettier-ignore
+    getters: opts.getters === "all" ? true : opts.getters === "none" ? false : opts.getters,
+    numericSeparator: opts.numericSeparator !== "none",
+    // showify-only options
+    ...showifyOnlyOptions.reduce<Record<string, unknown>>(
+      (acc, key) => ({ ...acc, [key]: opts[key as keyof typeof opts] }),
+      {},
+    ),
+  };
+}
+/**
+ * Convert {@linkcode InspectOptions} to {@linkcode ShowOptions}.
+ * @param opts The options to convert.
+ * @returns
+ */
+function convertToShowOptions(opts: InspectOptions): ShowOptions {
+  return {
+    showHidden: opts.showHidden ? "always" : "none",
+    depth: opts.depth,
+    colors: opts.colors,
+    callNodeInspect: opts.customInspect,
+    maxArrayLength: opts.maxArrayLength,
+    maxStringLength: opts.maxStringLength,
+    indent:
+      "indent" in opts && typeof opts.indent === "number" ? opts.indent
+      : opts.breakLength === Infinity ? 0
+      : 2,
+    breakLength: opts.breakLength,
+    sorted: opts.sorted,
+    // prettier-ignore
+    getters: opts.getters === true ? "all" : opts.getters === false ? "none" : opts.getters,
+    numericSeparator: opts.numericSeparator ? "_" : "none",
+    // showify-only options
+    ...showifyOnlyOptions.reduce<Record<string, unknown>>((acc, key) => {
+      if (key in opts) acc[key] = opts[key as keyof typeof opts];
+      return acc;
+    }, {}),
+  };
 }
