@@ -225,6 +225,29 @@ export function serializer(serializer: Serializer): Serializer {
  * @param value The value to stringify.
  * @param options The options for stringification.
  * @returns The stringified value.
+ *
+ * @example
+ * ```javascript
+ * const value = {
+ *   foo: "bar",
+ *   "Hello\nworld": [-0, 2n, NaN],
+ *   [Symbol("qux")]: { quux: "corge" },
+ *   map: new Map([
+ *     ["foo", "bar"],
+ *     [{ bar: 42 }, "qux"],
+ *   ]),
+ * };
+ * value.circular = value;
+ *
+ * console.log(show(value, { indent: 2, trailingComma: "auto", colors: true }));
+ * // <ref *1> {
+ * //   foo: "bar",
+ * //   "Hello\nworld": [-0, 2n, NaN],
+ * //   map: Map(2) { "foo" => "bar", { bar: 42 } => "qux" },
+ * //   circular: [Circular *1],
+ * //   [Symbol(qux)]: { quux: "corge" },
+ * // }
+ * ```
  */
 export function show(value: unknown, options: ShowOptions = {}): string {
   const refs = new Map<object, number>();
