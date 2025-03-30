@@ -927,9 +927,10 @@ function buildTree(
           pointer += 2;
         }
         // Insert trailing empty item markers if necessary
-        const lastKey = integerKeys[integerKeys.length - 1];
+        let lastKey = integerKeys[integerKeys.length - 1];
+        if (lastKey === undefined) lastKey = -1;
         const len = value.length;
-        if (lastKey && lastKey < len - 1) {
+        if (lastKey < len - 1) {
           const str = `<${len - lastKey - 1} empty item${len - lastKey - 1 === 1 ? "" : "s"}>`;
           entries.push(text(c.gray(str)));
         }

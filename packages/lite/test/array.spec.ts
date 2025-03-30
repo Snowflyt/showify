@@ -30,6 +30,11 @@ describe("Array", () => {
     expect(inspect([1, 2, 3, ,])).toEqual(util.inspect([1, 2, 3, ,]));
     expect(show([1, 2, 3, , ,])).toEqual("[1, 2, 3, <2 empty items>]");
     expect(inspect([1, 2, 3, , ,])).toEqual(util.inspect([1, 2, 3, , ,]));
+    expect(show([1, , ,])).toEqual("[1, <2 empty items>]");
+    expect(inspect([1, , ,])).toEqual(util.inspect([1, , ,]));
+    // Only empty slots
+    expect(show([, , ,])).toEqual("[<3 empty items>]");
+    expect(inspect([, , ,])).toEqual(util.inspect([, , ,]));
   });
 
   it("should show arrays with brackets spacing if `arrayBracketSpacing` is `true`", () => {
