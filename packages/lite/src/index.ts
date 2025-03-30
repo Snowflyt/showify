@@ -1189,8 +1189,13 @@ export interface InspectOptionsStylized extends InspectOptions {
   ): string;
 }
 
+/**
+ * Options only supported by showify.
+ */
 const showifyOnlyOptions = [
   "callToJSON",
+  "callNodeInspect",
+  "indent",
   "omittedKeys",
   "quoteStyle",
   "quoteKeys",
@@ -1199,7 +1204,7 @@ const showifyOnlyOptions = [
   "objectCurlySpacing",
   "referencePointer",
   "serializers",
-];
+] as const satisfies (keyof ShowOptions)[];
 
 /**
  * Convert {@linkcode SerializerOptions} to Node.js `util.inspect` options.
