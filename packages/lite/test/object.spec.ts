@@ -2,7 +2,7 @@ import util from "node:util";
 
 import { describe, expect, it } from "vitest";
 
-import type { InspectOptions, InspectOptionsStylized } from "../src";
+import type { InspectOptions, InspectOptionsStylized, Node, SerializerOptions } from "../src";
 import { show } from "../src";
 
 import { inspect } from "./test-utils";
@@ -253,6 +253,41 @@ describe("Object", () => {
     expect(show(obj, { callToJSON: true, omittedKeys: new Set(["toJSON"]) })).toEqual(
       '{ bar: "baz" }',
     );
+  });
+
+  it('should call `Symbol.for("showify.inspect.custom")` method if `callCustomInspect` is `true`', () => {
+    const obj = {
+      [Symbol.for("showify.inspect.custom")](
+        options: SerializerOptions,
+        expand: (value: unknown, options?: Partial<SerializerOptions>) => Node,
+      ) {
+        return expand({ foo: "bar" });
+      },
+      bar: "baz",
+    };
+
+    expect(show(obj, { callCustomInspect: true })).toEqual('{ foo: "bar" }');
+
+    // `omittedKeys` should disable `Symbol.for("showify.inspect.custom")`
+    expect(
+      show(obj, {
+        callCustomInspect: true,
+        omittedKeys: new Set([Symbol.for("showify.inspect.custom")]),
+      }),
+    ).toEqual('{ bar: "baz" }');
+
+    class Point {
+      constructor(
+        public x: number,
+        public y: number,
+      ) {}
+
+      [Symbol.for("showify.inspect.custom")]() {
+        return { type: "text", value: `Point(${this.x}, ${this.y})` };
+      }
+    }
+
+    expect(show([new Point(1, 2), new Point(3, 4)])).toEqual("[Point(1, 2), Point(3, 4)]");
   });
 
   it('should bet compatible with Node.js’s `Symbol.for("nodejs.util.inspect.custom")`', () => {

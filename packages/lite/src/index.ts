@@ -14,6 +14,12 @@ export interface ShowOptions {
    */
   callNodeInspect?: boolean;
   /**
+   * Whether to call `Symbol.for("showify.inspect.custom")` on the value before stringifying it
+   * (if available). This option takes precedence over `callToJSON` and `callNodeInspect`.
+   * @default true
+   */
+  callCustomInspect?: boolean;
+  /**
    * The maximum depth to show.
    * @default Infinity
    */
@@ -216,6 +222,7 @@ Object.defineProperty(show, "defaultOptions", {
   get: (): Required<ShowOptions> => ({
     callToJSON: false,
     callNodeInspect: true,
+    callCustomInspect: true,
     depth: Infinity,
     indent: 0,
     breakLength: 80,
@@ -360,6 +367,7 @@ function buildTree(
   const {
     ancestors,
     arrayBracketSpacing,
+    callCustomInspect,
     callNodeInspect,
     callToJSON,
     getters,
@@ -445,6 +453,7 @@ function buildTree(
           const newOptions = {
             callToJSON,
             callNodeInspect,
+            callCustomInspect,
             depth: options.depth,
             showHidden,
             getters,
@@ -465,6 +474,16 @@ function buildTree(
           return { ...serializer(value, newOptions, expand), ref: value };
         }
 
+      if (
+        callCustomInspect &&
+        !omittedKeys.has(CustomInspectSymbol) &&
+        !(value instanceof Date) &&
+        typeof (value as { [CustomInspectSymbol]?: unknown })[CustomInspectSymbol] === "function"
+      )
+        return (value as { [CustomInspectSymbol]: CustomInspectFunction })[CustomInspectSymbol](
+          options,
+          expand,
+        );
       if (
         callNodeInspect &&
         !omittedKeys.has(NodeInspectSymbol) &&
@@ -952,6 +971,8 @@ function between<const Nodes extends Node[]>(
 /**********************
  * Internal utilities *
  **********************/
+const CustomInspectSymbol = Symbol.for("showify.inspect.custom");
+type CustomInspectSymbol = typeof CustomInspectSymbol;
 const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom");
 type NodeInspectSymbol = typeof NodeInspectSymbol;
 
@@ -1173,6 +1194,14 @@ function isESModule(value: object) {
 }
 
 /**
+ * Custom inspect method for {@linkcode show} (`Symbol.for("showify.inspect.custom")`).
+ */
+export type CustomInspectFunction = (
+  options: SerializerOptions,
+  expand: (value: unknown, options?: Partial<SerializerOptions>) => Node,
+) => Node;
+
+/**
  * Custom inspect function compatible with Node.js `Symbol.for("nodejs.util.inspect.custom")`.
  */
 export type NodeCustomInspectFunction = (
@@ -1222,6 +1251,7 @@ export interface InspectOptionsStylized extends InspectOptions {
 const showifyOnlyOptions = [
   "callToJSON",
   "callNodeInspect",
+  "callCustomInspect",
   "indent",
   "omittedKeys",
   "quoteStyle",
@@ -1275,6 +1305,7 @@ function convertToShowOptions(opts: InspectOptions): ShowOptions {
     showHidden: opts.showHidden ? "always" : "none",
     depth: opts.depth,
     callNodeInspect: opts.customInspect,
+    callCustomInspect: opts.customInspect,
     maxArrayLength: opts.maxArrayLength,
     maxStringLength: opts.maxStringLength,
     indent: opts.breakLength === Infinity ? 0 : 2,
