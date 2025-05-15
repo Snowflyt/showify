@@ -92,9 +92,12 @@ export interface ShowOptions {
   /**
    * Whether to add separators as thousands separators in numbers (including BigInts). If not set to
    * `"none"`, it will use the provided string as the separator, e.g., `","` or `"_"`.
+   *
+   * For compatibility with Node.js’s `util.inspect`, `true` is also accepted as `"_"`, and `false`
+   * is also accepted as `"none"`, but it is recommended to use the string values for clarity.
    * @default "none"
    */
-  numericSeparator?: "none" | (string & {});
+  numericSeparator?: "none" | (string & {}) | boolean;
   /**
    * Whether to add a trailing comma to the last item in an array or object. If set to `"auto"`, it
    * will add a trailing comma if the last item is on a separate line.
@@ -1426,8 +1429,8 @@ function stringifyString(
  * @param sep The numeric separator to use. If `"none"`, no separator will be used.
  * @returns The stringified value.
  */
-function stringifyNumber(value: number | bigint, sep: "none" | (string & {})): string {
-  if (sep === "none")
+function stringifyNumber(value: number | bigint, sep: "none" | (string & {}) | boolean): string {
+  if (sep === "none" || !sep)
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
     return (Object.is(value, -0) ? "-0" : value) + (typeof value === "bigint" ? "n" : "");
   // eslint-disable-next-line @typescript-eslint/no-base-to-string
@@ -1435,8 +1438,8 @@ function stringifyNumber(value: number | bigint, sep: "none" | (string & {})): s
   return (
     // TODO: Refactor this slow regex to a faster implementation
     // eslint-disable-next-line sonarjs/slow-regex
-    parts[0]!.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1" + sep) +
-    (parts[1] ? "." + parts[1].replace(/(\d{3})/g, "$1" + sep) : "") +
+    parts[0]!.replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1" + (sep === true ? "_" : sep)) +
+    (parts[1] ? "." + parts[1].replace(/(\d{3})/g, "$1" + (sep === true ? "_" : sep)) : "") +
     (typeof value === "bigint" ? "n" : "")
   );
 }
