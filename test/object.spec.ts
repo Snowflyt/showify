@@ -55,7 +55,7 @@ describe("Object", () => {
       [sym2]: 2,
     };
 
-    expect(show(obj)).toEqual("{ [Symbol(test1)]: 1, [Symbol(test2)]: 2 }");
+    expect(show(obj)).toEqual("{ Symbol(test1): 1, Symbol(test2): 2 }");
     expect(inspect(obj)).toEqual(util.inspect(obj));
     expect(inspect(obj, { colors: true })).toEqual(util.inspect(obj, { colors: true }));
   });
@@ -215,7 +215,7 @@ describe("Object", () => {
     };
 
     expect(show(obj, { sorted: true })).toEqual(
-      "{ [Symbol(sym)]: 0, [Symbol(sym)]: 0, a: 1, b: [Getter], c: 3 }",
+      "{ Symbol(sym): 0, Symbol(sym): 0, a: 1, b: [Getter], c: 3 }",
     );
     expect(inspect(obj, { sorted: true })).toEqual(util.inspect(obj, { sorted: true }));
     expect(inspect(obj, { sorted: true, colors: true })).toEqual(
@@ -345,7 +345,7 @@ describe("Object", () => {
         '       "Hello\\nworld": [-0, 2n, NaN],\n' +
         '       map: Map(2) { "foo" => Box< "bar" >, { bar: 42 } => "qux" },\n' +
         "       circular: [Circular *1],\n" +
-        '       [Symbol(qux)]: { quux: "corge" }\n' +
+        '       Symbol(qux): { quux: "corge" }\n' +
         "     } >",
     );
     expect(inspect(box)).toEqual(util.inspect(box));

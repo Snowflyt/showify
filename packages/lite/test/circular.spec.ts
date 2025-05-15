@@ -19,7 +19,7 @@ describe("Circular reference", () => {
     expect(show(circular, { indent: 2 })).toEqual(
       trimIndent(`
         <ref *1> {
-          a: [[Circular *1], { foo: 42n, [Symbol(foo)]: true }],
+          a: [[Circular *1], { foo: 42n, Symbol(foo): true }],
           b: <ref *2> { inner: [Circular *2], obj: [Circular *1] },
           c: Map(2) {
             { bar: 43 } => "baz",
@@ -31,7 +31,7 @@ describe("Circular reference", () => {
     expect(show(circular, { indent: 2, trailingComma: "auto" })).toEqual(
       trimIndent(`
         <ref *1> {
-          a: [[Circular *1], { foo: 42n, [Symbol(foo)]: true }],
+          a: [[Circular *1], { foo: 42n, Symbol(foo): true }],
           b: <ref *2> { inner: [Circular *2], obj: [Circular *1] },
           c: Map(2) {
             { bar: 43 } => "baz",
@@ -46,7 +46,7 @@ describe("Circular reference", () => {
     expect(show(circular, { indent: 2, referencePointer: false, trailingComma: "always" })).toEqual(
       trimIndent(`
         {
-          a: [[Circular], { foo: 42n, [Symbol(foo)]: true, },],
+          a: [[Circular], { foo: 42n, Symbol(foo): true, },],
           b: { inner: [Circular], obj: [Circular], },
           c: Map(2) {
             { bar: 43, } => "baz",

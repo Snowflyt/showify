@@ -187,7 +187,7 @@ export function serializer(serializer: Serializer): Serializer {
  * //   "Hello\nworld": [-0, 2n, NaN],
  * //   map: Map(2) { "foo" => "bar", { bar: 42 } => "qux" },
  * //   circular: [Circular *1],
- * //   [Symbol(qux)]: { quux: "corge" },
+ * //   Symbol(qux): { quux: "corge" },
  * // }
  * ```
  */
@@ -680,7 +680,7 @@ function buildTree(
 
         let keyDisplay =
           // Symbol keys should be wrapped with `[]`
-          typeof key === "symbol" ? `[${key.toString()}]`
+          typeof key === "symbol" ? key.toString()
             // Always quote keys if `quoteKeys` is set to `"always"`
           : quoteKeys === "always" ? stringifyString(key, quoteStyle)
             // For string keys that are valid identifiers, we should show them as is

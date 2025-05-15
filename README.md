@@ -58,7 +58,7 @@ console.log(show(value, { indent: 2, trailingComma: "auto", colors: true }));
 //   "Hello\nworld": [-0, 2n, NaN],
 //   map: Map(2) { "foo" => "bar", { bar: 42 } => "qux" },
 //   circular: [Circular *1],
-//   [Symbol(qux)]: { quux: "corge" },
+//   Symbol(qux): { quux: "corge" },
 // }
 ```
 
@@ -143,7 +143,7 @@ Aside from the features listed above, **showify** also supports many more specia
 - **Break length:** **showify** tries to break lines exactly at `breakLength` characters, while `util.inspect` may break lines at slightly different positions due to a different algorithm for calculating the break position.
 - **Array break:** When breaking arrays, **showify** always places one element per line, while `util.inspect` might place multiple elements on a single line, e.g., `[\n 1, 2, 3, 4, 5,\n 6, 7, 8, 9, 10\n]`.
 - **Circular reference pointer:** **showify** always displays a reference pointer when the same object is referenced, while `util.inspect` does not always do so if the same object is referenced multiple times.
-- **`Symbol.toStringTag`:** `util.inspect` shows `[Symbol(Symbol.toStringTag)]: "..."` for some objects (like generators and generator functions) when `showHidden` is `true`, even if `Symbol.toStringTag` is not an own property of the object. **showify** does not show this in such cases.
+- **`Symbol.toStringTag`:** `util.inspect` shows `Symbol(Symbol.toStringTag): "..."` for some objects (like generators and generator functions) when `showHidden` is `true`, even if `Symbol.toStringTag` is not an own property of the object. **showify** does not show this in such cases.
 
 ### A complete list of rules for stringifying JavaScript values
 
@@ -203,8 +203,8 @@ Aside from the features listed above, **showify** also supports many more specia
 **Regular objects:**
 
 - **Module:** `Module` objects are displayed as `[Module]` if its `[[Prototype]]` is not null, or `[Module: null prototype]` otherwise.
-- **Object:** Other objects are displayed as `{ key: value1, "non identifier key": value2, [Symbol(id)]: value3, ... }`. `${className}` is displayed if it’s not `"Object"` and no prefix is already defined, e.g., `MyClass { key1: value1, key2: value2, ... }`. Objects with a null `[[Prototype]]` are displayed as `[Object: null prototype]`.
-- **Object keys:** String keys are displayed as `key` if they are valid identifiers, or `"key"` otherwise. Symbol keys are displayed as `[Symbol(key)]`. If a key is non-enumerable, it is displayed as `[key]` (NOTE: non-enumerable keys are only displayed if `showHidden` is not `"none"`).
+- **Object:** Other objects are displayed as `{ key: value1, "non identifier key": value2, Symbol(id): value3, ... }`. `${className}` is displayed if it’s not `"Object"` and no prefix is already defined, e.g., `MyClass { key1: value1, key2: value2, ... }`. Objects with a null `[[Prototype]]` are displayed as `[Object: null prototype]`.
+- **Object keys:** String keys are displayed as `key` if they are valid identifiers, or `"key"` otherwise. Symbol keys are displayed as `Symbol(key)`. If a key is non-enumerable, it is displayed as `[key]` (NOTE: non-enumerable keys are only displayed if `showHidden` is not `"none"`).
 - **Getter/Setter:** Getters and setters are displayed as `[Getter/Setter]`, `[Getter]`, or `[Setter]`. For example, `{ foo: [Getter/Setter], bar: [Getter] }`. If `getters` is not `"none"`, getters are further inspected, e.g., `{ foo: [Getter] { bar: "baz" } }`. Note that getters might throw an error, and in such cases, the error message is displayed if the thrown value is an object with a `message` property, e.g., `{ foo: [Getter: <Inspection threw (error message)>] }`.
 
 ### Available Options
