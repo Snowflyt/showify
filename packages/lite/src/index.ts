@@ -963,7 +963,7 @@ function getGlobalValue<T>(name: string, defaultValue: T): T {
   try {
     // eslint-disable-next-line @typescript-eslint/no-implied-eval
     return new Function(`return ${name}`)();
-  } catch {
+  } catch (e) {
     return defaultValue;
   }
 }
