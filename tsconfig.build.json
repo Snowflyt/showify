@@ -5,8 +5,5 @@
     "useDefineForClassFields": false,
     "noEmit": false,
     "outDir": "dist"
-  },
-  "tsc-alias": {
-    "resolveFullPaths": true
   }
 }
