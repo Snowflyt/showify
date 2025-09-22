@@ -263,25 +263,27 @@ export function show(value: unknown, options: ShowOptions = {}): string {
   const getDefaultOptions = () =>
     (show as unknown as { defaultOptions: RequiredShowOptions }).defaultOptions;
   const defaultOptions = getDefaultOptions();
-  const fullOptions = {
-    ...defaultOptions,
-    ...options,
-    styles: { ...defaultOptions.styles, ...options.styles },
-  };
-  const tree = buildTree(value, {
-    ...fullOptions,
-    level: 0,
-    ancestors: [],
-    refs,
-    c: colorize.buildC(fullOptions.colors, fullOptions.styles),
+  const fullOptions = Object.assign({}, defaultOptions, options, {
+    styles: Object.assign({}, defaultOptions.styles, options.styles),
   });
-  return stringify(tree, {
-    ...fullOptions,
-    level: 0,
-    forceWrap: false,
-    restLineLength: fullOptions.breakLength,
-    refs,
-  });
+  const tree = buildTree(
+    value,
+    Object.assign({}, fullOptions, {
+      level: 0,
+      ancestors: [],
+      refs,
+      c: colorize.buildC(fullOptions.colors, fullOptions.styles),
+    }),
+  );
+  return stringify(
+    tree,
+    Object.assign({}, fullOptions, {
+      level: 0,
+      forceWrap: false,
+      restLineLength: fullOptions.breakLength,
+      refs,
+    }),
+  );
 }
 export declare namespace show {
   let defaultOptions: RequiredShowOptions;
@@ -365,10 +367,13 @@ function stringify(
   else if (type === "variant") {
     const { inline, wrap } = node;
 
-    if (!forceWrap) result = stringify(inline, { ...options, indent: 0 });
+    if (!forceWrap) result = stringify(inline, Object.assign({}, options, { indent: 0 }));
 
     if (forceWrap || (indent && cleanANSI(result).length > options.restLineLength))
-      result = stringify(wrap, { ...options, forceWrap: true, restLineLength: restLineLength() });
+      result = stringify(
+        wrap,
+        Object.assign({}, options, { forceWrap: true, restLineLength: restLineLength() }),
+      );
   }
 
   // sequence
@@ -376,16 +381,20 @@ function stringify(
     const { values } = node;
 
     if (!forceWrap)
-      result = values.map((value) => stringify(value, { ...options, indent: 0 })).join("");
+      result = values
+        .map((value) => stringify(value, Object.assign({}, options, { indent: 0 })))
+        .join("");
 
     if (forceWrap || (indent && cleanANSI(result).length > options.restLineLength)) {
       result = "";
       for (const value of values)
-        result += stringify(value, {
-          ...options,
-          forceWrap: true,
-          restLineLength: restLineLength(),
-        });
+        result += stringify(
+          value,
+          Object.assign({}, options, {
+            forceWrap: true,
+            restLineLength: restLineLength(),
+          }),
+        );
     }
   }
 
@@ -396,25 +405,30 @@ function stringify(
 
     if (!forceWrap)
       result =
-        (open ? stringify(open, { ...options, indent: 0 }) : "") +
-        values.map((val) => stringify(val, { ...options, indent: 0 })).join("") +
-        (close ? stringify(close, { ...options, indent: 0 }) : "");
+        (open ? stringify(open, Object.assign({}, options, { indent: 0 })) : "") +
+        values.map((val) => stringify(val, Object.assign({}, options, { indent: 0 }))).join("") +
+        (close ? stringify(close, Object.assign({}, options, { indent: 0 })) : "");
 
     if (forceWrap || (indent && cleanANSI(result).length > options.restLineLength)) {
-      result = open ? stringify(open, { ...options, forceWrap: false }) : "";
+      result = open ? stringify(open, Object.assign({}, options, { forceWrap: false })) : "";
       for (let i = 0; i < values.length; i++) {
         const value = values[i]!;
         if (i !== 0 || result) result += "\n" + " ".repeat((level + 1) * indent);
-        result += stringify(value, {
-          ...options,
-          level: level + 1,
-          forceWrap: false,
-          restLineLength: restLineLength(),
-        });
+        result += stringify(
+          value,
+          Object.assign({}, options, {
+            level: level + 1,
+            forceWrap: false,
+            restLineLength: restLineLength(),
+          }),
+        );
       }
       const after =
         close ?
-          stringify(close, { ...options, forceWrap: false, restLineLength: restLineLength() })
+          stringify(
+            close,
+            Object.assign({}, options, { forceWrap: false, restLineLength: restLineLength() }),
+          )
         : "";
       if (after) result += (values.length ? "\n" + " ".repeat(level * indent) : "") + after;
     }
@@ -502,7 +516,7 @@ function buildTree(
     }
     if (rest) parts.push(inline(rest));
     parts = parts.map((node, i) =>
-      i !== parts.length - 1 ? { ...node, value: node.value + " +" } : node,
+      i !== parts.length - 1 ? Object.assign({}, node, { value: node.value + " +" }) : node,
     );
     if (ellipsis) parts[parts.length - 1]!.value += ellipsis;
     return variant(inline(truncatedStr, ellipsis), between(parts));
@@ -514,14 +528,19 @@ function buildTree(
 
   /* Helper functions */
   const expand = (v: unknown, opts: Partial<SerializerOptions> = {}) => {
-    const fullOptions = {
-      ...options,
-      omittedKeys: opts.omittedKeys || new Set(),
-      level: options.level + 1,
-      ancestors: [...ancestors, value],
-      ...opts,
-      styles: { ...options.styles, ...opts.styles },
-    };
+    const fullOptions = Object.assign(
+      {},
+      options,
+      {
+        omittedKeys: opts.omittedKeys || new Set(),
+        level: options.level + 1,
+        ancestors: [...ancestors, value],
+      },
+      opts,
+      {
+        styles: Object.assign({}, options.styles, opts.styles),
+      },
+    );
     if (fullOptions.level > fullOptions.depth + 1) throw new MaximumDepthError();
     if (
       fullOptions.colors !== colors ||
@@ -572,7 +591,7 @@ function buildTree(
             ancestors,
             c,
           } satisfies SerializerOptions;
-          return { ...serializer(value, newOptions, expand), ref: value };
+          return Object.assign({}, serializer(value, newOptions, expand), { ref: value });
         }
 
       if (
@@ -1048,7 +1067,7 @@ function buildTree(
         if (toStringTag && (!isESModule(value) || toStringTag !== "Module")) {
           if (!prefix) prefix = text(`${className} [${toStringTag}]`);
           else if (prefix.type === "text")
-            prefix = { ...prefix, value: `${prefix.value} [${toStringTag}]` };
+            prefix = Object.assign({}, prefix, { value: `${prefix.value} [${toStringTag}]` });
           else prefix = pair(prefix, text(` [${toStringTag}]`));
         }
       }
@@ -1072,7 +1091,7 @@ function buildTree(
         : body;
 
       // Add reference pointer to help identify circular structures
-      return { ...result, ref: value };
+      return Object.assign({}, result, { ref: value });
     } catch (err) {
       if (err instanceof MaximumDepthError)
         return text(
@@ -1132,12 +1151,14 @@ function between<const Nodes extends Node[]>(
   open?: Node,
   close?: Node,
 ): { type: "between"; values: Nodes; open?: Node; close?: Node } {
-  return {
-    type: "between",
-    values,
-    ...(open !== undefined ? { open } : {}),
-    ...(close !== undefined ? { close } : {}),
-  };
+  return Object.assign(
+    {
+      type: "between",
+      values,
+    },
+    open !== undefined ? { open } : {},
+    close !== undefined ? { close } : {},
+  ) as { type: "between"; values: Nodes; open?: Node; close?: Node };
 }
 
 /**********************
@@ -1310,7 +1331,7 @@ function colorizeNode<N extends ReturnType<typeof text> | ReturnType<typeof sequ
   color: colorize.Color | keyof Styles,
 ): N {
   /* text */
-  if (node.type === "text") return { ...node, value: c[color](node.value) };
+  if (node.type === "text") return Object.assign({}, node, { value: c[color](node.value) });
 
   /* sequence */
   if (!node.values.length) return node;
@@ -1322,14 +1343,15 @@ function colorizeNode<N extends ReturnType<typeof text> | ReturnType<typeof sequ
   const [open, close] = c[color]("|").split("|", 2) as [string, string];
 
   // Open color
-  if (first.type === "text") values[0] = { ...first, value: open + first.value };
+  if (first.type === "text") values[0] = Object.assign({}, first, { value: open + first.value });
   else values.splice(0, 0, text(open));
 
   // Close color
-  if (last.type === "text") values[values.length - 1] = { ...last, value: last.value + close };
+  if (last.type === "text")
+    values[values.length - 1] = Object.assign({}, last, { value: last.value + close });
   else values.push(text(close));
 
-  return { ...node, values };
+  return Object.assign({}, node, { values });
 }
 
 /**
@@ -1635,30 +1657,32 @@ function convertToInspectOptions(
     c: ReturnType<typeof colorize.buildC>;
   },
 ): InspectOptionsStylized {
-  return {
-    stylize: function stylize(text, styleType) {
-      if (styleType === "module") return text;
-      return opts.c[styleType](text);
-    },
-    showHidden: opts.showHidden !== "none" && opts.showHidden !== false,
-    depth: opts.depth - opts.level,
-    colors: opts.colors,
-    customInspect: opts.callNodeInspect,
-    showProxy: false, // Unsupported in this library, use a dummy value
-    maxArrayLength: opts.maxArrayLength,
-    maxStringLength: opts.maxStringLength,
-    breakLength: opts.breakLength,
-    compact: false, // Unsupported in this library, use a dummy value
-    sorted: opts.sorted,
-    // prettier-ignore
-    getters: opts.getters === "all" ? true : opts.getters === "none" ? false : opts.getters,
-    numericSeparator: opts.numericSeparator !== "none",
+  return Object.assign(
+    {
+      stylize: function stylize(text, styleType) {
+        if (styleType === "module") return text;
+        return opts.c[styleType](text);
+      },
+      showHidden: opts.showHidden !== "none" && opts.showHidden !== false,
+      depth: opts.depth - opts.level,
+      colors: opts.colors,
+      customInspect: opts.callNodeInspect,
+      showProxy: false, // Unsupported in this library, use a dummy value
+      maxArrayLength: opts.maxArrayLength,
+      maxStringLength: opts.maxStringLength,
+      breakLength: opts.breakLength,
+      compact: false, // Unsupported in this library, use a dummy value
+      sorted: opts.sorted,
+      // prettier-ignore
+      getters: opts.getters === "all" ? true : opts.getters === "none" ? false : opts.getters,
+      numericSeparator: opts.numericSeparator !== "none",
+    } satisfies InspectOptionsStylized,
     // showify-only options
-    ...showifyOnlyOptions.reduce<Record<string, unknown>>(
-      (acc, key) => ({ ...acc, [key]: opts[key as keyof typeof opts] }),
-      {},
-    ),
-  };
+    showifyOnlyOptions.reduce<Record<string, unknown>>((acc, key) => {
+      acc[key] = opts[key as keyof typeof opts];
+      return acc;
+    }, {}),
+  );
 }
 /**
  * Convert {@linkcode InspectOptions} to {@linkcode ShowOptions}.
@@ -1666,27 +1690,29 @@ function convertToInspectOptions(
  * @returns
  */
 function convertToShowOptions(opts: InspectOptions): ShowOptions {
-  return {
-    showHidden: opts.showHidden ? "always" : "none",
-    depth: opts.depth,
-    colors: opts.colors,
-    callNodeInspect: opts.customInspect,
-    callCustomInspect: opts.customInspect,
-    maxArrayLength: opts.maxArrayLength,
-    maxStringLength: opts.maxStringLength,
-    indent:
-      "indent" in opts && typeof opts.indent === "number" ? opts.indent
-      : opts.breakLength === Infinity ? 0
-      : 2,
-    breakLength: opts.breakLength,
-    sorted: opts.sorted,
-    // prettier-ignore
-    getters: opts.getters === true ? "all" : opts.getters === false ? "none" : opts.getters,
-    numericSeparator: opts.numericSeparator ? "_" : "none",
+  return Object.assign(
+    {
+      showHidden: opts.showHidden ? "always" : "none",
+      depth: opts.depth,
+      colors: opts.colors,
+      callNodeInspect: opts.customInspect,
+      callCustomInspect: opts.customInspect,
+      maxArrayLength: opts.maxArrayLength,
+      maxStringLength: opts.maxStringLength,
+      indent:
+        "indent" in opts && typeof opts.indent === "number" ? opts.indent
+        : opts.breakLength === Infinity ? 0
+        : 2,
+      breakLength: opts.breakLength,
+      sorted: opts.sorted,
+      // prettier-ignore
+      getters: opts.getters === true ? "all" : opts.getters === false ? "none" : opts.getters,
+      numericSeparator: opts.numericSeparator ? "_" : "none",
+    } satisfies ShowOptions,
     // showify-only options
-    ...showifyOnlyOptions.reduce<Record<string, unknown>>((acc, key) => {
+    showifyOnlyOptions.reduce<Record<string, unknown>>((acc, key) => {
       if (key in opts) acc[key] = opts[key as keyof typeof opts];
       return acc;
     }, {}),
-  };
+  );
 }
