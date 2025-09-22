@@ -913,8 +913,8 @@ function buildTree(
       if (sorted)
         // Sort object keys if `sorted` is `true`
         objectEntries.sort((a, b) => {
-          const aStr = String(cleanANSI(a.type === "text" ? a.value : a.values[0].value));
-          const bStr = String(cleanANSI(b.type === "text" ? b.value : b.values[0].value));
+          const aStr = cleanANSI(a.type === "text" ? a.value : a.values[0].value);
+          const bStr = cleanANSI(b.type === "text" ? b.value : b.values[0].value);
           return (
             aStr < bStr ? -1
             : aStr > bStr ? 1
