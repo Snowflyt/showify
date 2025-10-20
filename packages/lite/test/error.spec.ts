@@ -35,6 +35,12 @@ describe("Error", () => {
     expect(inspect(error)).toEqual(util.inspect(error));
   });
 
+  it("should indent error stack in nested structures", () => {
+    const obj = { error: new Error("foo") };
+    expect(show(obj, { indent: 2 })).toMatch(/^{\n {2}error: Error: foo\n {6}at /);
+    expect(inspect(obj)).toEqual(util.inspect(obj));
+  });
+
   it("should format error stack for runtimes other than V8", () => {
     // SpiderMonkey style
     let stack =

@@ -587,7 +587,24 @@ function buildTree(
             str = str.replace(errorNameRegEx, `${errorName} [${toStringTag}]`);
             stackPrefix = stackPrefix.replace(errorNameRegEx, `${errorName} [${toStringTag}]`);
           }
-          prefix = text(formatErrorStack(str, stackPrefix) || `[${str}]`);
+          const stack = formatErrorStack(str, stackPrefix);
+          if (!stack || !stack.includes("\n")) {
+            prefix = text(stack || `[${str}]`);
+          } else {
+            prefix = variant(
+              text(stack),
+              between(
+                stack
+                  .split("\n")
+                  .map((line, i) =>
+                    // De-indent 4-space padding to 2-space padding so `between` nodes can format
+                    // the stack back to 4-space padding
+                    i !== 0 && line.startsWith("    at") ? line.slice(2) : line,
+                  )
+                  .map(text),
+              ),
+            );
+          }
         } else {
           const toStringTag = getToStringTag(value, showHidden);
           const classNameWithTag = className + (toStringTag ? ` [${toStringTag}]` : "");
