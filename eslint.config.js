@@ -21,7 +21,7 @@ export default defineConfig(
   sonarjs.configs.recommended,
   {
     plugins: {
-      "sort-destructure-keys": sortDestructureKeys,
+      "sort-destructure-keys": /** @type {import("eslint").ESLint.Plugin} */ (sortDestructureKeys),
     },
     linterOptions: {
       reportUnusedDisableDirectives: true,
