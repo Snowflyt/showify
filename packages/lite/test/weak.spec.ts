@@ -38,7 +38,7 @@ describe("WeakMap", () => {
   it("should show subclass of WeakMap", () => {
     class MyWeakMap extends WeakMap {}
     const myWeakMap = new MyWeakMap();
-    expect(show(myWeakMap)).toEqual("MyWeakMap [WeakMap] { <items unknown> }");
+    expect(show(myWeakMap)).toEqual("MyWeakMap { <items unknown> }");
     expect(inspect(myWeakMap)).toEqual(util.inspect(myWeakMap));
   });
 });
@@ -75,7 +75,7 @@ describe("WeakSet", () => {
   it("should show subclass of WeakSet", () => {
     class MyWeakSet extends WeakSet {}
     const myWeakSet = new MyWeakSet();
-    expect(show(myWeakSet)).toEqual("MyWeakSet [WeakSet] { <items unknown> }");
+    expect(show(myWeakSet)).toEqual("MyWeakSet { <items unknown> }");
     expect(inspect(myWeakSet)).toEqual(util.inspect(myWeakSet));
   });
 });

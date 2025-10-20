@@ -1428,7 +1428,7 @@ function getClassName(value: object): string {
  * - It is a string.
  * - It is not an empty string.
  * - It is not already displayed by `showHidden`.
- * - It is not equal to the class name.
+ * - The class name does not already end with the `Symbol.toStringTag` value.
  *
  * Otherwise, return `null`.
  * @param value The object to get the `Symbol.toStringTag` of.
@@ -1445,7 +1445,7 @@ function getToStringTag(
         (showHidden !== "none" && showHidden !== false ?
           !Object.prototype.hasOwnProperty.call(value, Symbol.toStringTag)
         : !Object.prototype.propertyIsEnumerable.call(value, Symbol.toStringTag)) &&
-        toStringTag !== getClassName(value)
+        !getClassName(value).endsWith(toStringTag)
     ) ?
       toStringTag
     : null;

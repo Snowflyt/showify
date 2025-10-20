@@ -160,7 +160,7 @@ Aside from the features listed above, **showify** also supports many more specia
   - If the object is a prototype of a class (by checking if `value === value.constructor.prototype`), `Object.getPrototypeOf(value).constructor.name`.
   - Otherwise, `value.constructor.name`.
   - If the name from the above two steps is empty, `"Object"`.
-- **`Symbol.toStringTag`:** If an object has a `Symbol.toStringTag` property that is not already shown and is not equal to its `${className}`, it is displayed as the following:
+- **`Symbol.toStringTag`:** If an object has a `Symbol.toStringTag` property that is not already shown and its `${className}` does not end with the value of `Symbol.toStringTag`, it is displayed as the following:
   - For `Date`s and `RegExp`s, it is displayed with brackets around after the class name, e.g., `Date [MyTag] 2025-02-13T11:42:41.196Z` or `MyRegExp [MyTag] /(?:)/ { foo: 'bar' }`.
   - For `Error`s, it is displayed with brackets around after the error name, e.g., `Error [MyTag]: error message\n    at ...` or `[TypeError [MyTag]: error message]`.
   - For ES6 classes, it is displayed with brackets around after the class name, e.g., `[class MyClass [MyTag]]` or `[class MyClass [MyTag] extends MySuperClass]`.
