@@ -559,8 +559,21 @@ function buildTree(
         removeEmptyBody = true;
       } else if (value instanceof Error) {
         if (value.stack) {
+          const errorName =
+            Object.prototype.hasOwnProperty.call(value, "name") ? value.name : className;
           let str = value.stack;
-          let stackPrefix = className + (value.message ? `: ${value.message}` : "");
+          const lines = str.split("\n");
+          // Force error name to be its `name` property if the error stack is valid
+          if (
+            lines.length >= 2 &&
+            !lines[0]!.startsWith("    at") &&
+            lines[1]!.startsWith("    at")
+          ) {
+            let errorNameInStack = lines[0]!.split(" ", 1)[0]!;
+            if (errorNameInStack.endsWith(":")) errorNameInStack = errorNameInStack.slice(0, -1);
+            str = errorName + str.slice(errorNameInStack.length);
+          }
+          let stackPrefix = errorName + (value.message ? `: ${value.message}` : "");
           // The rule of `Symbol.toStringTag` for `Error`s is different from other
           // objects, so we should handle it here.
           const toStringTag = getToStringTag(value, showHidden);
@@ -568,11 +581,11 @@ function buildTree(
             // Escape special characters in the class name
             // Copied from: https://stackoverflow.com/a/3561711/21418758
             const errorNameRegEx = new RegExp(
-              `^${className.replace(/[/\-\\^$*+?.()|[\]{}]/, "\\$&")}(?=:|$|\n)`,
+              `^${errorName.replace(/[/\-\\^$*+?.()|[\]{}]/, "\\$&")}(?=:|$|\n)`,
               "m",
             );
-            str = str.replace(errorNameRegEx, `${className} [${toStringTag}]`);
-            stackPrefix = stackPrefix.replace(errorNameRegEx, `${className} [${toStringTag}]`);
+            str = str.replace(errorNameRegEx, `${errorName} [${toStringTag}]`);
+            stackPrefix = stackPrefix.replace(errorNameRegEx, `${errorName} [${toStringTag}]`);
           }
           prefix = text(formatErrorStack(str, stackPrefix) || `[${str}]`);
         } else {

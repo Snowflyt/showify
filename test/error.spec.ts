@@ -25,6 +25,14 @@ describe("Error", () => {
     error.stack = "foo\n  bar\n    at";
     expect(show(error)).toEqual("foo\n  bar\n    at");
     expect(inspect(error)).toEqual(util.inspect(error));
+
+    class MyError extends Error {}
+    error = new MyError();
+    expect(show(error)).toMatch(/^MyError/);
+    expect(inspect(error)).toEqual(util.inspect(error));
+    error = new MyError("baz");
+    expect(show(error)).toMatch(/^MyError: baz\n {4}at /);
+    expect(inspect(error)).toEqual(util.inspect(error));
   });
 
   it("should format error stack for runtimes other than V8", () => {
