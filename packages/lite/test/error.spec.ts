@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import util from "node:util";
 
 import { describe, expect, it } from "vitest";
@@ -228,5 +229,22 @@ describe("Error", () => {
     error.message = "";
     expect(show(error)).toEqual("[Error [MyError]]");
     expect(inspect(error)).toEqual(util.inspect(error));
+  });
+
+  it("should show error.cause by default", async () => {
+    const controller = new AbortController();
+    const promise = delay(10_000, undefined, { signal: controller.signal });
+    controller.abort(new Error("boom"));
+
+    let error: any;
+    try {
+      await promise;
+    } catch (e) {
+      error = e;
+    }
+
+    expect(show(error)).toMatch(/^AbortError: The operation was aborted.*?\n {4}at /);
+    expect(inspect(error)).toEqual(util.inspect(error));
+    expect(inspect(error, { showHidden: true })).toEqual(util.inspect(error, { showHidden: true }));
   });
 });

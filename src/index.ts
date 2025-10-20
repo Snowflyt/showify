@@ -862,10 +862,18 @@ function buildTree(
         // Hide non-enumerable keys when `showHidden` is `"none"`
         if (
           (showHidden !== "none" && showHidden !== false) ||
-          Object.getOwnPropertyDescriptor(value, key)!.enumerable
+          (!(value instanceof Error && key === "name") && // `name` is already used as error prefix
+            Object.getOwnPropertyDescriptor(value, key)!.enumerable)
         )
           otherKeys.push(key);
       }
+      // Preserve Error.cause
+      if (
+        value instanceof Error &&
+        allKeys.indexOf("cause") !== -1 &&
+        otherKeys.indexOf("cause") === -1
+      )
+        otherKeys.push("cause");
 
       // Array element
       const entries: Node[] = arrayItemKeys.map((key) => expand(value[key as keyof typeof value]));
