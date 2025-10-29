@@ -758,9 +758,11 @@ function buildTree(
         else {
           // The type of the function (`Function`, `GeneratorFunction`, `AsyncFunction`, etc.)
           type =
-            value instanceof Cached.GeneratorFunction ? "GeneratorFunction"
-            : value instanceof Cached.AsyncFunction ? "AsyncFunction"
-            : value instanceof Cached.AsyncGeneratorFunction ? "AsyncGeneratorFunction"
+            generatorFunctionRegExp.test(Function.prototype.toString.call(value)) ?
+              "GeneratorFunction"
+            : asyncFunctionRegExp.test(Function.prototype.toString.call(value)) ? "AsyncFunction"
+            : asyncGeneratorFunctionRegExp.test(Function.prototype.toString.call(value)) ?
+              "AsyncGeneratorFunction"
             : "Function";
           // Show function name as `: ${name}` if available, or `(anonymous)` otherwise
           str = value.name ? `[${type}: ${value.name}]` : `[${type} (anonymous)]`;
@@ -785,12 +787,11 @@ function buildTree(
                 Object.getPrototypeOf(prototype) === Object.prototype) ||
               (type === "GeneratorFunction" &&
                 ownKeys.length === 0 &&
-                Object.getPrototypeOf(prototype) ===
-                  Cached.GeneratorFunction.prototype.prototype) ||
+                Object.getPrototypeOf(prototype) === GeneratorFunction.prototype.prototype) ||
               (type === "AsyncGeneratorFunction" &&
                 ownKeys.length === 0 &&
                 Object.getPrototypeOf(prototype) ===
-                  Cached.AsyncGeneratorFunction.prototype.prototype)
+                  getAsyncGeneratorFunction().prototype.prototype)
             )
               omittedKeys.add("prototype");
           }
@@ -1218,36 +1219,26 @@ type CustomInspectSymbol = typeof CustomInspectSymbol;
 const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom");
 type NodeInspectSymbol = typeof NodeInspectSymbol;
 
-/**
- * Get a global value. This function works in all environments, including Node.js and
- * browsers.
- * @param name The name of the global value.
- * @param defaultValue The default value if the global value is not defined.
- * @returns
- */
-function getGlobalValue<T>(name: string, defaultValue: T): T {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    return new Function(`return ${name}`)();
-  } catch (e) {
-    return defaultValue;
-  }
-}
-/**
- * Cached objects to be used by {@link show}.
- */
-const Cached = {
-  /* eslint-disable @typescript-eslint/no-unsafe-function-type */
-  BigInt: getGlobalValue<Function>("BigInt", function () {}),
+const GeneratorFunction = /* #__PURE__ */ function* () {}.constructor;
 
-  GeneratorFunction: function* () {}.constructor as GeneratorFunctionConstructor,
-  AsyncFunction: getGlobalValue<Function>("async function () {}.constructor", function () {}),
-  AsyncGeneratorFunction: getGlobalValue<Function>(
-    "async function* () {}.constructor",
-    function () {},
-  ),
-  /* eslint-enable @typescript-eslint/no-unsafe-function-type */
-};
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+let cachedAsyncGeneratorFunction: Function | undefined;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+function getAsyncGeneratorFunction(): Function {
+  if (!cachedAsyncGeneratorFunction)
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-implied-eval
+      cachedAsyncGeneratorFunction = Function("return async function*(){}")().constructor;
+    } catch (e) {
+      cachedAsyncGeneratorFunction = function () {}.constructor;
+    }
+  return cachedAsyncGeneratorFunction!;
+}
+
+const generatorFunctionRegExp = /^\s*(?:function)?\*/;
+const asyncFunctionRegExp =
+  /^\s*async(?:\s+function(?:\s+[A-Za-z_$][A-Za-z0-9_$]*|\s*\()|\s*\(|\s+[A-Za-z_$][A-Za-z0-9_$]*\s*\(|\s*\[)/;
+const asyncGeneratorFunctionRegExp = /^\s*async\s*(?:function\s*)?\*/;
 
 /**
  * Colorize a string with ANSI escape codes.
@@ -1716,7 +1707,8 @@ function getWrapperClass(value: object): Function | null {
   if (value instanceof String) return String;
   if (value instanceof Symbol) return Symbol;
   if (value instanceof Number) return Number;
-  if (value instanceof Cached.BigInt) return Cached.BigInt;
+  // @ts-expect-error - BigInt is only available in ES2020+
+  if (typeof BigInt === "function" && value instanceof BigInt) return BigInt;
   if (value instanceof Boolean) return Boolean;
   return null;
 }
