@@ -146,7 +146,7 @@ export interface ShowOptions {
   colors?: boolean;
   /**
    * Colors for different types of values.
-   * @default { string: "green", symbol: "green", number: "yellow", bigint: "yellow", boolean: "yellow", null: "bold", undefined: "gray", date: "magenta", regexp: "red", special: "cyan" }
+   * @default { string: "green", symbol: "green", number: "yellow", bigint: "yellow", boolean: "yellow", null: "bold", undefined: "gray", date: "magenta", regexp: highlightRegExp, special: "cyan" }
    */
   styles?: Partial<Styles>;
   /**
@@ -319,7 +319,7 @@ Object.defineProperty(show, "defaultOptions", {
       null: "bold",
       undefined: "gray",
       date: "magenta",
-      regexp: "red",
+      regexp: highlightRegExp,
       special: "cyan",
     },
     serializers: [],
@@ -1409,6 +1409,248 @@ function cleanANSI(str: string): string {
     /[\u001b\u009b][[()#;?]*(?:\d{1,4}(?:;\d{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
     "",
   );
+}
+
+const HIGHLIGHT_REGEXP_COLORS = [
+  "green",
+  "red",
+  "yellow",
+  "cyan",
+  "magenta",
+] as const satisfies colorize.Color[];
+
+/**
+ * This function is shamelessly copied from Node.js’s implementation of `util.inspect`:
+ * <https://github.com/nodejs/node/blob/dec0213c834607e7721ee250d8c46ef9cd112efe/lib/internal/util/inspect.js#L526-L768>
+ *
+ * Thanks to [@BridgeAR](https://github.com/BridgeAR) for [the original implementation](https://github.com/nodejs/node/pull/59710) in Node.js!
+ *
+ * Colorize a JavaScript RegExp pattern per ECMAScript grammar.
+ * This is a tolerant single-pass highlighter using heuristics in some cases.
+ * It supports: groups (named/unnamed, lookaround), assertions, alternation,
+ * quantifiers, escapes (incl. Unicode properties), character classes and
+ * backreferences.
+ * @param regexpString The RegExp pattern string (including leading and trailing slashes).
+ * @returns The colorized RegExp pattern string.
+ */
+function highlightRegExp(regexpString: string) {
+  let result = "";
+  let i = 0;
+  let depth = 0;
+  let inClass = false;
+
+  const writeGroup = (start: string, end: string, decDepth = 1) => {
+    let seq = "";
+    i++;
+    // Only checking for the closing delimiter is a fast heuristic for regular
+    // expressions without the u or v flag. A safer check would verify that the
+    // read characters are all alphanumeric.
+    while (i < regexpString.length && regexpString[i] !== end) seq += regexpString[i++];
+    if (i < regexpString.length) {
+      depth -= decDepth;
+      write(start);
+      writeDepth(seq, 1, 1);
+      write(end);
+      depth += decDepth;
+    } else {
+      // The group is not closed which would lead to mistakes in the output.
+      // This is a workaround to prevent output from being corrupted.
+      writeDepth(start, 1, -seq.length);
+    }
+  };
+
+  const write = (s: string) => {
+    const idx = depth % HIGHLIGHT_REGEXP_COLORS.length;
+    // Safeguard against bugs in the implementation.
+    const color = HIGHLIGHT_REGEXP_COLORS[idx] || HIGHLIGHT_REGEXP_COLORS[0];
+    result += colorize(s, color);
+    return idx;
+  };
+
+  function writeDepth(s: string, incDepth: number, incI: number) {
+    depth += incDepth;
+    write(s);
+    depth -= incDepth;
+    i += incI;
+  }
+
+  // Opening '/'
+  write("/");
+  depth++;
+  i = 1;
+
+  // Parse pattern until next unescaped '/'
+  while (i < regexpString.length) {
+    const ch = regexpString[i]!;
+
+    if (inClass) {
+      if (ch === "\\") {
+        let seq = "\\";
+        i++;
+        if (i < regexpString.length) {
+          seq += regexpString[i++];
+          const next = seq[1];
+          if (
+            (next === "u" && regexpString[i] === "{") ||
+            ((next === "p" || next === "P") && regexpString[i] === "{")
+          ) {
+            writeGroup(`${seq}{`, "}", 0);
+            continue;
+          } else if (seq[1] === "x") {
+            seq += regexpString.slice(i, i + 2);
+            i += 2;
+          }
+        }
+        write(seq);
+      } else if (ch === "]") {
+        depth--;
+        write("]");
+        i++;
+        inClass = false;
+      } else if (
+        ch === "-" &&
+        regexpString[i - 1] !== "[" &&
+        i + 1 < regexpString.length &&
+        regexpString[i + 1] !== "]"
+      ) {
+        writeDepth("-", 1, 1);
+      } else {
+        write(ch);
+        i++;
+      }
+    } else if (ch === "[") {
+      // Enter class
+      write("[");
+      depth++;
+      i++;
+      inClass = true;
+    } else if (ch === "(") {
+      write("(");
+      depth++;
+      i++;
+      if (i < regexpString.length && regexpString[i] === "?") {
+        // Assertions and named groups
+        i++;
+        const a = i < regexpString.length ? regexpString[i] : "";
+        if (a === ":" || a === "=" || a === "!") {
+          writeDepth(`?${a}`, -1, 1);
+        } else {
+          const b = i + 1 < regexpString.length ? regexpString[i + 1] : "";
+          if (a === "<" && (b === "=" || b === "!")) {
+            writeDepth(`?<${b}`, -1, 2);
+          } else if (a === "<") {
+            // Named capture: write '?<name>' as a single colored token
+            i++; // Consume '<'
+            const start = i;
+            while (i < regexpString.length && regexpString[i] !== ">") i++;
+            const name = regexpString.slice(start, i);
+            if (i < regexpString.length && regexpString[i] === ">") {
+              depth--;
+              write("?<");
+              writeDepth(name, 1, 0);
+              write(">");
+              depth++;
+              i++;
+            } else {
+              writeDepth("?<", -1, 0);
+              write(name);
+            }
+          } else {
+            write("?");
+          }
+        }
+      }
+    } else if (ch === ")") {
+      depth--;
+      write(")");
+      i++;
+    } else if (ch === "\\") {
+      let seq = "\\";
+      i++;
+      if (i < regexpString.length) {
+        seq += regexpString[i++];
+        const next = seq[1]!;
+        if (i < regexpString.length) {
+          if (
+            regexpString[i] === "{" &&
+            (next === "u" || /* Unicode properties */ next === "p" || next === "P")
+          ) {
+            writeGroup(`${seq}{`, "}", 0);
+            continue;
+          } else if (next === "x") {
+            seq += regexpString.slice(i, i + 2);
+            i += 2;
+          } else if (next >= "0" && next <= "9") {
+            while (i < regexpString.length && regexpString[i]! >= "0" && regexpString[i]! <= "9") {
+              seq += regexpString[i++];
+            }
+          } else if (next === "k" && regexpString[i] === "<") {
+            writeGroup(`${seq}<`, ">");
+            continue;
+          }
+        }
+      }
+      writeDepth(seq, 1, 0);
+    } else if (
+      ch === "|" ||
+      ch === "+" ||
+      ch === "*" ||
+      ch === "?" ||
+      ch === "," ||
+      ch === "^" ||
+      ch === "$"
+    ) {
+      writeDepth(ch, 3, 1);
+    } else if (ch === "{") {
+      i++;
+      let digits = "";
+      while (i < regexpString.length && regexpString[i]! >= "0" && regexpString[i]! <= "9")
+        digits += regexpString[i++];
+      if (digits) {
+        write("{");
+        depth++;
+        writeDepth(digits, 1, 0);
+      }
+      if (i < regexpString.length) {
+        if (regexpString[i] === ",") {
+          if (!digits) {
+            write("{");
+            depth++;
+          }
+          write(",");
+          i++;
+        } else if (!digits) {
+          depth += 1;
+          write("{");
+          depth -= 1;
+          continue;
+        }
+      }
+      let digits2 = "";
+      while (i < regexpString.length && regexpString[i]! >= "0" && regexpString[i]! <= "9")
+        digits2 += regexpString[i++];
+      if (digits2) writeDepth(digits2, 1, 0);
+      if (i < regexpString.length && regexpString[i] === "}") {
+        depth--;
+        write("}");
+        i++;
+      }
+      if (i < regexpString.length && regexpString[i] === "?") writeDepth("?", 3, 1);
+    } else if (ch === ".") {
+      writeDepth(ch, 2, 1);
+    } else if (ch === "/") {
+      // Stop at closing delimiter (unescaped, outside of character class)
+      break;
+    } else {
+      writeDepth(ch, 1, 1);
+    }
+  }
+
+  // Closing delimiter and flags
+  writeDepth("/", -1, 1);
+  if (i < regexpString.length) write(regexpString.slice(i));
+
+  return result;
 }
 
 /**

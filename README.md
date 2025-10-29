@@ -182,7 +182,7 @@ Aside from the features listed above, **showify** also supports many more specia
 **Special objects:**
 
 - **Date:** `Date` objects are displayed as `date.toISOString()`. If `${className}` is not `"Date"`, it is displayed as `${className} ${date.toISOString()}`.
-- **RegExp:** `RegExp` objects are displayed as `re.toString()`. If `${className}` is not `"RegExp"`, it is displayed as `${className} ${re.toString()}`.
+- **RegExp:** `RegExp` objects are displayed as `re.toString()`. If `${className}` is not `"RegExp"`, it is displayed as `${className} ${re.toString()}`. When `colors` is `true`, the RegExp is syntax highlighted with a highlighter adapted from [Node.js’s implementation of `util.inspect`](https://github.com/nodejs/node/blob/dec0213c834607e7721ee250d8c46ef9cd112efe/lib/internal/util/inspect.js#L526-L768) that follows the ECMAScript grammar (groups, assertions, escapes, character classes, quantifiers, etc.). You can customize this via `styles.regexp`.
 - **Error:** `Error` objects are displayed as `error.stack` if available and valid, or `[${error.stack}]` if `error.stack` is available but invalid, or `[${className}: ${error.message}]` if message is available, or `[${className}]` otherwise.
 - **Promise:** `Promise` objects are displayed as `Promise { <state unknown> }`.
 - **ArrayBuffer:** `[Uint8Contents]` and `byteLength` are displayed for `ArrayBuffer` objects. For example, `ArrayBuffer { [Uint8Contents]: <2a 00 00 00 00 00 00 00>, byteLength: 8 }`.
