@@ -642,8 +642,13 @@ function buildTree(
       let bodyStyle: "Array" | "Object" = "Object";
       let prefix: Node | undefined = undefined;
       let prefixColor: keyof typeof c | null = null;
+      const extraEntries: Node[] = []; // Before main entries
       let removeEmptyBody = false;
       let tmp: unknown;
+
+      const pushExtraProperty = (key: string | symbol, val: unknown) => {
+        extraEntries.push(pair(text(c.string("[" + formatKey(key) + "]") + ": "), expand(val)));
+      };
 
       /* Build prefix for special cases */
       // `Date`, `RegExp` and `Error`
@@ -876,9 +881,11 @@ function buildTree(
         otherKeys.push("cause");
 
       // Array element
-      const entries: Node[] = arrayItemKeys.map((key) => expand(value[key as keyof typeof value]));
+      const arrayEntries: Node[] = arrayItemKeys.map((key) =>
+        expand(value[key as keyof typeof value]),
+      );
       if (hiddenArrayItemsCount)
-        entries.push(
+        arrayEntries.push(
           text(
             c.gray(
               `... ${hiddenArrayItemsCount} more item${hiddenArrayItemsCount === 1 ? "" : "s"}`,
@@ -886,19 +893,20 @@ function buildTree(
           ),
         );
 
+      const formatKey = (key: string | symbol): string =>
+        typeof key === "symbol" ? c.symbol(key.toString())
+          // Always quote keys if `quoteKeys` is set to `"always"`
+        : quoteKeys === "always" ? c.string(stringifyString(key, quoteStyle))
+          // For string keys that are valid identifiers, we should show them as is
+        : isIdentifier(key) ? key
+          // For other string keys, we should wrap them with quotes
+        : c.string(stringifyString(key, quoteStyle));
+
       // Object key/value pair
       const objectEntries = otherKeys.map((key) => {
         const desc = Object.getOwnPropertyDescriptor(value, key)!;
 
-        let keyDisplay =
-          // Symbol keys should be wrapped with `[]`
-          typeof key === "symbol" ? c.symbol(key.toString())
-            // Always quote keys if `quoteKeys` is set to `"always"`
-          : quoteKeys === "always" ? c.string(stringifyString(key, quoteStyle))
-            // For string keys that are valid identifiers, we should show them as is
-          : isIdentifier(key) ? key
-            // For other string keys, we should wrap them with quotes
-          : c.string(stringifyString(key, quoteStyle));
+        let keyDisplay = formatKey(key);
         // Add `[]` around non-enumerable string keys
         if (typeof key === "string" && !desc.enumerable) keyDisplay = `[${keyDisplay}]`;
 
@@ -959,12 +967,11 @@ function buildTree(
             : 0
           );
         });
-      Array.prototype.push.apply(entries, objectEntries);
 
       /* Refine entries */
       // Promise
       if (value instanceof Promise) {
-        entries.splice(0, 0, text(c.special("<state unknown>")));
+        extraEntries.push(text(c.special("<state unknown>")));
       }
 
       // Map
@@ -987,7 +994,7 @@ function buildTree(
             );
           });
         for (const [key, val] of mapEntries)
-          entries.push(sequence([expand(key), text(" => "), expand(val)]));
+          (objectEntries as Node[]).push(sequence([expand(key), text(" => "), expand(val)]));
       }
 
       // Set
@@ -1005,12 +1012,12 @@ function buildTree(
               : 0
             );
           });
-        for (const val of setItems) entries.push(expand(val));
+        for (const val of setItems) (objectEntries as Node[]).push(expand(val));
       }
 
       // WeakMap and WeakSet
       else if (value instanceof WeakMap || value instanceof WeakSet) {
-        entries.splice(0, 0, text(c.special("<items unknown>")));
+        extraEntries.push(text(c.special("<items unknown>")));
       }
 
       // Empty item markers for arrays
@@ -1025,7 +1032,7 @@ function buildTree(
             continue;
           }
           const str = `<${nextKey - key - 1} empty item${nextKey - key - 1 === 1 ? "" : "s"}>`;
-          entries.splice(pointer, 0, text(c.gray(str)));
+          arrayEntries.splice(pointer, 0, text(c.gray(str)));
           pointer += 2;
         }
         // Insert trailing empty item markers if necessary
@@ -1034,7 +1041,7 @@ function buildTree(
         const len = value.length;
         if (lastKey < len - 1) {
           const str = `<${len - lastKey - 1} empty item${len - lastKey - 1 === 1 ? "" : "s"}>`;
-          entries.push(text(c.gray(str)));
+          arrayEntries.push(text(c.gray(str)));
         }
       }
 
@@ -1049,22 +1056,25 @@ function buildTree(
           contents += part;
         }
         contents += ">";
-        entries.splice(0, 0, text(c.special("[Uint8Contents]") + ": " + contents));
+        extraEntries.push(
+          pair(text(c.special("[Uint8Contents]") + ": "), text(c.special(contents))),
+        );
         // byteLength
-        entries.splice(1, 0, text("byteLength: " + c.number(value.byteLength)));
+        pushExtraProperty("byteLength", value.byteLength);
       }
 
       // DataView
       else if (value instanceof DataView) {
-        // byteLength
-        entries.splice(0, 0, text("byteLength: " + c.number(value.byteLength)));
-        // byteOffset
-        entries.splice(1, 0, text("byteOffset: " + c.number(value.byteOffset)));
-        // buffer
-        entries.splice(2, 0, pair(text("buffer: "), expand(value.buffer)));
+        pushExtraProperty("byteLength", value.byteLength);
+        pushExtraProperty("byteOffset", value.byteOffset);
+        pushExtraProperty("buffer", value.buffer);
       }
 
       /* Build body */
+      const entries = arrayEntries;
+      Array.prototype.push.apply(entries, extraEntries);
+      Array.prototype.push.apply(entries, objectEntries);
+
       // Wrap `[]` for array-style objects, and `{}` for others
       const [open, close] = bodyStyle === "Array" ? ["[", "]"] : ["{", "}"];
       const braceSpacing = bodyStyle === "Array" ? arrayBracketSpacing : objectCurlySpacing;

@@ -538,6 +538,7 @@ function buildTree(
       /* Initial setup */
       let bodyStyle: "Array" | "Object" = "Object";
       let prefix: Node | undefined = undefined;
+      const extraEntries: Node[] = []; // Before main entries
       let removeEmptyBody = false;
       let tmp: unknown;
 
@@ -704,6 +705,15 @@ function buildTree(
       }
 
       /* Build base entries */
+      const formatKey = (key: string | symbol): string =>
+        typeof key === "symbol" ? key.toString()
+          // Always quote keys if `quoteKeys` is set to `"always"`
+        : quoteKeys === "always" ? stringifyString(key, quoteStyle)
+          // For string keys that are valid identifiers, we should show them as is
+        : isIdentifier(key) ? key
+          // For other string keys, we should wrap them with quotes
+        : stringifyString(key, quoteStyle);
+
       const allKeys = Reflect.ownKeys(value).filter((key) => !omittedKeys.has(key));
       const arrayItemKeys: string[] = [];
       let hiddenArrayItemsCount = 0;
@@ -734,9 +744,11 @@ function buildTree(
         otherKeys.push("cause");
 
       // Array element
-      const entries: Node[] = arrayItemKeys.map((key) => expand(value[key as keyof typeof value]));
+      const arrayEntries: Node[] = arrayItemKeys.map((key) =>
+        expand(value[key as keyof typeof value]),
+      );
       if (hiddenArrayItemsCount)
-        entries.push(
+        arrayEntries.push(
           text(`... ${hiddenArrayItemsCount} more item${hiddenArrayItemsCount === 1 ? "" : "s"}`),
         );
 
@@ -744,15 +756,7 @@ function buildTree(
       const objectEntries = otherKeys.map((key) => {
         const desc = Object.getOwnPropertyDescriptor(value, key)!;
 
-        let keyDisplay =
-          // Symbol keys should be wrapped with `[]`
-          typeof key === "symbol" ? key.toString()
-            // Always quote keys if `quoteKeys` is set to `"always"`
-          : quoteKeys === "always" ? stringifyString(key, quoteStyle)
-            // For string keys that are valid identifiers, we should show them as is
-          : isIdentifier(key) ? key
-            // For other string keys, we should wrap them with quotes
-          : stringifyString(key, quoteStyle);
+        let keyDisplay = formatKey(key);
         // Add `[]` around non-enumerable string keys
         if (typeof key === "string" && !desc.enumerable) keyDisplay = `[${keyDisplay}]`;
 
@@ -803,12 +807,11 @@ function buildTree(
             : 0
           );
         });
-      Array.prototype.push.apply(entries, objectEntries);
 
       /* Refine entries */
       // Promise
       if (value instanceof Promise) {
-        entries.splice(0, 0, text("<state unknown>"));
+        extraEntries.push(text("<state unknown>"));
       }
 
       // Map
@@ -831,7 +834,7 @@ function buildTree(
             );
           });
         for (const [key, val] of mapEntries)
-          entries.push(sequence([expand(key), text(" => "), expand(val)]));
+          (objectEntries as Node[]).push(sequence([expand(key), text(" => "), expand(val)]));
       }
 
       // Set
@@ -849,12 +852,12 @@ function buildTree(
               : 0
             );
           });
-        for (const val of setItems) entries.push(expand(val));
+        for (const val of setItems) (objectEntries as Node[]).push(expand(val));
       }
 
       // WeakMap and WeakSet
       else if (value instanceof WeakMap || value instanceof WeakSet) {
-        entries.splice(0, 0, text("<items unknown>"));
+        extraEntries.push(text("<items unknown>"));
       }
 
       // Empty item markers for arrays
@@ -869,7 +872,7 @@ function buildTree(
             continue;
           }
           const str = `<${nextKey - key - 1} empty item${nextKey - key - 1 === 1 ? "" : "s"}>`;
-          entries.splice(pointer, 0, text(str));
+          arrayEntries.splice(pointer, 0, text(str));
           pointer += 2;
         }
         // Insert trailing empty item markers if necessary
@@ -878,11 +881,15 @@ function buildTree(
         const len = value.length;
         if (lastKey < len - 1) {
           const str = `<${len - lastKey - 1} empty item${len - lastKey - 1 === 1 ? "" : "s"}>`;
-          entries.push(text(str));
+          arrayEntries.push(text(str));
         }
       }
 
       /* Build body */
+      const entries = arrayEntries;
+      Array.prototype.push.apply(entries, extraEntries);
+      Array.prototype.push.apply(entries, objectEntries);
+
       // Wrap `[]` for array-style objects, and `{}` for others
       const [open, close] = bodyStyle === "Array" ? ["[", "]"] : ["{", "}"];
       const braceSpacing = bodyStyle === "Array" ? arrayBracketSpacing : objectCurlySpacing;
