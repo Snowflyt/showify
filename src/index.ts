@@ -174,16 +174,16 @@ type QuoteStyle =
   | ["double", "backtick"]
   | ["backtick", "double"];
 interface Styles {
-  readonly string: colorize.Color;
-  readonly symbol: colorize.Color;
-  readonly number: colorize.Color;
-  readonly bigint: colorize.Color;
-  readonly boolean: colorize.Color;
-  readonly null: colorize.Color;
-  readonly undefined: colorize.Color;
-  readonly date: colorize.Color;
-  readonly regexp: colorize.Color;
-  readonly special: colorize.Color;
+  readonly string: colorize.Color | ((s: string) => string);
+  readonly symbol: colorize.Color | ((s: string) => string);
+  readonly number: colorize.Color | ((s: string) => string);
+  readonly bigint: colorize.Color | ((s: string) => string);
+  readonly boolean: colorize.Color | ((s: string) => string);
+  readonly null: colorize.Color | ((s: string) => string);
+  readonly undefined: colorize.Color | ((s: string) => string);
+  readonly date: colorize.Color | ((isoString: string) => string);
+  readonly regexp: colorize.Color | ((regexpString: string) => string);
+  readonly special: colorize.Color | ((s: string) => string);
 }
 export interface Serializer {
   if: (value: object, options: SerializerOptions) => boolean;
@@ -1259,8 +1259,11 @@ function colorize(
     | "magenta"
     | "red"
     | "white"
-    | "yellow",
+    | "yellow"
+    | ((s: string) => string),
 ): string {
+  if (typeof color === "function") return color(str);
+
   switch (color) {
     /* Modifiers */
     case "bold":
