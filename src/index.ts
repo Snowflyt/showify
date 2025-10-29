@@ -1951,11 +1951,13 @@ function convertToInspectOptions(
     c: ReturnType<typeof colorize.buildC>;
   },
 ): InspectOptionsStylized {
+  const { c } = opts;
   return Object.assign(
     {
       stylize: function stylize(text, styleType) {
         if (styleType === "module") return text;
-        return opts.c[styleType](text);
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        return (c[styleType] || ((text) => text))(text);
       },
       showHidden: opts.showHidden !== "none" && opts.showHidden !== false,
       depth: opts.depth - opts.level,
