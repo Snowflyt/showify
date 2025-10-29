@@ -1728,9 +1728,25 @@ function stringifyString(
   quoteStyle: NonNullable<ShowOptions["quoteStyle"]>,
 ): string {
   if (quoteStyle === "double") return JSON.stringify(value);
+
   const unescaped = JSON.stringify(value).slice(1, -1).replace(/\\"/g, '"');
+
+  // Avoid using backticks when the content looks like a template literal
+  // i.e., contains the sequence "${". This mirrors Node's util.inspect behavior
+  const hasTemplate = unescaped.includes("${");
+  if (hasTemplate && quoteStyle === "backtick") return JSON.stringify(value);
+
   if (quoteStyle === "single") return `'${unescaped.replace(/'/g, "\\'")}'`;
   if (quoteStyle === "backtick") return `\`${unescaped.replace(/`/g, "\\`")}\``;
+
+  if (hasTemplate) {
+    const idx = (quoteStyle as (typeof quoteStyle)[number][]).indexOf("backtick");
+    if (idx !== -1) {
+      quoteStyle = quoteStyle.slice() as typeof quoteStyle;
+      quoteStyle.splice(idx, 1);
+    }
+  }
+
   const hasSingle = unescaped.includes("'");
   const hasDouble = unescaped.includes('"');
   const hasBack = unescaped.includes("`");
@@ -1848,6 +1864,9 @@ function isUndetectableObject(value: unknown): boolean {
 
 /**
  * Check if a value is an instance of a prototype.
+ * Detect undetectable objects (aka [[IsHTMLDDA]] values like `document.all`).
+ *
+ * See: <https://tc39.es/ecma262/#sec-IsHTMLDDA-internal-slot>
  * @param value The value to check.
  * @param proto The prototype to check against.
  * @returns

@@ -170,7 +170,7 @@ Aside from the features listed above, **showify** also supports many more specia
 - **Boolean:** `true` and `false` are displayed as `true` and `false`, respectively. Yellow if `colors` is `true`.
 - **Number:** Numbers are displayed as their literal values, e.g., `42`. Yellow if `colors` is `true`.
 - **BigInt:** BigInts are displayed as their literal values with **n** suffix, e.g., `42n`. Yellow if `colors` is `true`.
-- **String:** Strings are displayed as their literal values with quotes based on the `quoteStyle` option, e.g., `"foo"`. Green if `colors` is `true`.
+- **String:** Strings are displayed as their literal values with quotes based on the `quoteStyle` option, e.g., `"foo"`. Green if `colors` is `true`. When backticks are a candidate, showify avoids using backticks if the string contains the sequence `${` to prevent it from looking like a template literal. In that case, the next available quote style in your preference order is chosen.
 - **Multi-line strings:** Multi-line strings are broken into `"${s1}\n" + "${s2}\n" + ...` if its indentation plus the length of the string exceeds `breakLength`. Each part is colorized separately if `colors` is `true`, and `+`s are not colorized.
 - **Long strings:** If `maxStringLength` is set and the string is longer than `maxStringLength`, it is displayed as `"${s}"... ${n} more character${n === 1 ? "" : "s"}`, e.g., `"foo bar"... 3 more characters`. This also applies to multi-line strings, e.g., `"foo\n" + "bar"... 1 more character"`.
 - **Symbol:** Symbols are displayed as their literal values, e.g., `Symbol(foo)`. Green if `colors` is `true`.
@@ -188,7 +188,7 @@ Aside from the features listed above, **showify** also supports many more specia
 **Classes and functions:**
 
 - **ES6 Class:** If a callable (i.e., `typeof value === "function"`) object is an ES6 class, it is displayed as `[class ${className}]` or `[class (anonymous)]` if the class name is not available, or `[class ${className} extends ${superClassName}]` if the class has a superclass and the superclass name is available.
-- **Function:** Other callables are identified as functions. A function is displayed as `[${Type}: ${functionName}]` if `functionName` is available, or `[${Type} (anonymous)]` otherwise. `${Type}` is `Function` for regular functions, `AsyncFunction` for async functions, `GeneratorFunction` for generator functions, and `AsyncGeneratorFunction` for async generator functions. For functions that `${className}` is not equal to its `${Type}`, they are displayed with a `${className}` suffix, e.g., `[Function: anonymous] MyFn` for `new class MyFn extends Function {}()`, or `[Function (anonymous)] Object` for `Function.prototype`, or `[GeneratorFunction: anonymous] MyGenFn [GeneratorFunction]` for `new class MyGenFn extends function* () {}.constructor {}()`.
+- **Function:** Functions are shown as `[${Type}: ${name}]` or `[${Type} (anonymous)]` (`Type` is `Function`, `AsyncFunction`, `GeneratorFunction`, or `AsyncGeneratorFunction`); if the resolved `${className}` differs from `Type`, append it—except when it is `"Object"`.
 
 **Collections:**
 

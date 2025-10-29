@@ -140,6 +140,14 @@ describe("String primitive", () => {
       `\`foo''bar"baz\\\`\``,
     );
   });
+
+  it("should avoid backticks when string includes ${}", () => {
+    expect(show("hello '\"${name}")).toEqual('"hello \'\\"${name}"');
+    expect(show("hello '\"${name}", { quoteStyle: ["backtick", "single", "double"] })).toEqual(
+      "'hello \\'\"${name}'",
+    );
+    expect(inspect("hello '\"${name}")).toEqual(util.inspect("hello '\"${name}"));
+  });
 });
 
 describe("Wrapper object for strings", () => {
@@ -274,6 +282,14 @@ describe("Wrapper object for strings", () => {
     expect(
       inspect(Object(`foo''bar"baz\``), { quoteStyle: ["backtick", "single", "double"] }),
     ).toEqual(`[String: \`foo''bar"baz\\\`\`]`);
+  });
+
+  it("should avoid backticks for wrapper strings containing ${}", () => {
+    expect(show(Object("hello '\"${name}"))).toEqual('[String: "hello \'\\"${name}"]');
+    expect(
+      show(Object("hello '\"${name}"), { quoteStyle: ["backtick", "single", "double"] }),
+    ).toEqual("[String: 'hello \\'\"${name}']");
+    expect(inspect(Object("hello '\"${name}"))).toEqual(util.inspect(Object("hello '\"${name}")));
   });
 
   it("should show subclass of `String`", () => {
