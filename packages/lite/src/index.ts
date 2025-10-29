@@ -1042,12 +1042,16 @@ const asyncGeneratorFunctionRegExp = /^\s*async\s*(?:function\s*)?\*/;
  * @returns
  */
 function getClassName(value: object): string {
-  if (isLikelyPrototype(value)) {
-    const proto = Object.getPrototypeOf(value);
-    return (proto.constructor && proto.constructor.name) || "Object";
+  let obj: object | null = value;
+  while (obj || isUndetectableObject(obj)) {
+    const desc = Object.getOwnPropertyDescriptor(obj, "constructor");
+    const ctorName = desc && typeof desc.value === "function" && (desc.value.name as string);
+    if (ctorName && isInstanceOf(value, desc.value))
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-conversion
+      return String(ctorName);
+    obj = Object.getPrototypeOf(obj);
   }
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return (value.constructor && value.constructor.name) || "Object";
+  return "Object";
 }
 
 /**
@@ -1197,13 +1201,19 @@ function isUndetectableObject(value: unknown): boolean {
 }
 
 /**
- * Check if a value is likely the `prototype` of a class.
+ * Check if a value is an instance of a prototype.
  * @param value The value to check.
+ * @param proto The prototype to check against.
  * @returns
  */
-function isLikelyPrototype(value: object): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  return value === (value.constructor && value.constructor.prototype);
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+function isInstanceOf(value: unknown, proto: Function): boolean {
+  try {
+    return value instanceof proto;
+  } catch (e) {
+    // Cross-realm/proxy oddities: ignore and continue.
+    return false;
+  }
 }
 
 /**

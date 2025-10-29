@@ -156,10 +156,7 @@ Aside from the features listed above, **showify** also supports many more specia
 - **`.[Symbol.for("showify.inspect.custom")]()`**: If `callCustomInspect` is `true`, **showify** calls `[Symbol.for("nodejs.inspect.custom")]()` on the value before stringifying it (if available). This option takes precedence over `callToJSON` and `callNodeInspect`.
 - **`.toJSON()`**: If `callToJSON` is `true`, **showify** calls `toJSON()` on the value before stringifying it (if available).
 - **Extra keys:** Extra keys of any special object (e.g., wrapper objects for primitives, errors, promises, functions, arrays) are displayed. For example, `[Function: foo] { bar: "baz" }` or `[1, 2, 3, foo: "bar"]`.
-- **Class name:** An object’s `${className}` is defined as:
-  - If the object is a prototype of a class (by checking if `value === value.constructor.prototype`), `Object.getPrototypeOf(value).constructor.name`.
-  - Otherwise, `value.constructor.name`.
-  - If the name from the above two steps is empty, `"Object"`.
+- **Class name:** An object’s `${className}` is defined as the first non‑empty `.constructor.name` found while walking up the prototype chain, or `"Object"` if none is found. For cross‑realm and Proxy objects, we only accept a name when the own `constructor` is a function and `value instanceof constructor` is `true`.
 - **`Symbol.toStringTag`:** If an object has a `Symbol.toStringTag` property that is not already shown and its `${className}` does not end with the value of `Symbol.toStringTag`, it is displayed as the following:
   - For `Date`s and `RegExp`s, it is displayed with brackets around after the class name, e.g., `Date [MyTag] 2025-02-13T11:42:41.196Z` or `MyRegExp [MyTag] /(?:)/ { foo: 'bar' }`.
   - For `Error`s, it is displayed with brackets around after the error name, e.g., `Error [MyTag]: error message\n    at ...` or `[TypeError [MyTag]: error message]`.

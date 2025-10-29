@@ -101,15 +101,11 @@ describe("Function", () => {
     const GeneratorProto = Object.getPrototypeOf(function* () {}.prototype);
     const AsyncGeneratorProto = Object.getPrototypeOf(async function* () {}.prototype);
 
-    expect(show(GeneratorProto)).toEqual("Iterator [Generator] {}");
-    // NOTE: The result of `inspect` and `util.inspect` is different here:
-    // `Iterator [Generator] {}` V.S. `Object [Generator] {}`
-    // I’m not sure why. But since our version is also reasonable and even better than the one of
-    // `util.inspect`, I’ll just keep it.
-    // expect(inspect(GeneratorProto)).toEqual(util.inspect(GeneratorProto));
-    // expect(inspect(GeneratorProto, { colors: true })).toEqual(
-    //   util.inspect(GeneratorProto, { colors: true }),
-    // );
+    expect(show(GeneratorProto)).toEqual("Object [Generator] {}");
+    expect(inspect(GeneratorProto)).toEqual(util.inspect(GeneratorProto));
+    expect(inspect(GeneratorProto, { colors: true })).toEqual(
+      util.inspect(GeneratorProto, { colors: true }),
+    );
     expect(show(AsyncGeneratorProto)).toEqual("Object [AsyncGenerator] {}");
     expect(inspect(AsyncGeneratorProto)).toEqual(util.inspect(AsyncGeneratorProto));
     expect(inspect(AsyncGeneratorProto, { colors: true })).toEqual(
