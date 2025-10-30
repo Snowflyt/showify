@@ -319,11 +319,16 @@ function stringify(
     }
 
     if (forceWrap || (indent && result.length > originalRestLineLength)) {
+      // Optimize restLineLength() usage by tracking current line length incrementally
       options.forceWrap = true;
       result = "";
+      let currentLineLen = breakLength - options.restLineLength;
       for (const value of values) {
-        options.restLineLength = restLineLength();
-        result += stringify(value, options);
+        options.restLineLength = breakLength - currentLineLen;
+        const part = stringify(value, options);
+        result += part;
+        const nl = part.lastIndexOf("\n");
+        currentLineLen = nl === -1 ? currentLineLen + part.length : part.length - (nl + 1);
       }
       options.forceWrap = forceWrap;
       options.restLineLength = originalRestLineLength;
@@ -344,7 +349,7 @@ function stringify(
       options.indent = indent;
     }
 
-    if (forceWrap || (indent && result.length > options.restLineLength)) {
+    if (forceWrap || (indent && result.length > originalRestLineLength)) {
       // Special-case: group array elements into columns like util.inspect
       result =
         (indent &&
@@ -358,20 +363,40 @@ function stringify(
           groupArrayElements(values, options)) ||
         "";
       if (!result) {
+        // Optimize restLineLength() by maintaining the current line length
+        // without scanning the whole result each time
         options.forceWrap = false;
         if (open) result = stringify(open, options);
+        let currentLineLen = breakLength - options.restLineLength;
+        if (result) {
+          const nlOpen = result.lastIndexOf("\n");
+          currentLineLen =
+            nlOpen === -1 ? currentLineLen + result.length : result.length - (nlOpen + 1);
+        }
         options.level = level + 1;
         for (let i = 0; i < values.length; i++) {
           const value = values[i]!;
-          if (i !== 0 || result) result += "\n" + " ".repeat((level + 1) * indent);
-          options.restLineLength = restLineLength();
-          result += stringify(value, options);
+          if (i !== 0 || result) {
+            const pad = " ".repeat((level + 1) * indent);
+            result += "\n" + pad;
+            currentLineLen = pad.length;
+          }
+          options.restLineLength = breakLength - currentLineLen;
+          const part = stringify(value, options);
+          result += part;
+          const nl = part.lastIndexOf("\n");
+          currentLineLen = nl === -1 ? currentLineLen + part.length : part.length - (nl + 1);
         }
         options.level = level;
         if (close) {
-          options.restLineLength = restLineLength();
+          options.restLineLength = breakLength - currentLineLen;
           const after = stringify(close, options);
-          result += (values.length ? "\n" + " ".repeat(level * indent) : "") + after;
+          if (values.length) {
+            const pad = " ".repeat(level * indent);
+            result += "\n" + pad + after;
+          } else {
+            result += after;
+          }
         }
         options.forceWrap = forceWrap;
         options.restLineLength = originalRestLineLength;
