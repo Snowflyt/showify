@@ -812,7 +812,21 @@ function buildTree(
         if (className !== "Array" && "length" in value && typeof value.length === "number")
           prefix = text(`${className}(${value.length})`);
         // Hide `length` property if `showHidden` is `exclude-meta`
-        if (showHidden === "exclude-meta") omittedKeys.add("length");
+        if (showHidden === "exclude-meta") {
+          omittedKeys.add("length");
+        } else if (
+          showHidden &&
+          showHidden !== "none" &&
+          // Show special properties for typed arrays
+          ArrayBuffer.isView(value) &&
+          !(value instanceof DataView)
+        ) {
+          pushExtraProperty("BYTES_PER_ELEMENT", (value as Uint8Array).BYTES_PER_ELEMENT);
+          pushExtraProperty("length", (value as Uint8Array).length);
+          pushExtraProperty("byteLength", value.byteLength);
+          pushExtraProperty("byteOffset", value.byteOffset);
+          pushExtraProperty("buffer", value.buffer);
+        }
       }
 
       // Wrapper objects for primitives
@@ -894,14 +908,17 @@ function buildTree(
           ),
         );
 
-      const formatKey = (key: string | symbol): string =>
-        typeof key === "symbol" ? c.symbol(key.toString())
-          // Always quote keys if `quoteKeys` is set to `"always"`
-        : quoteKeys === "always" ? c.string(stringifyString(key, quoteStyle))
-          // For string keys that are valid identifiers, we should show them as is
-        : /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? key
-          // For other string keys, we should wrap them with quotes
-        : c.string(stringifyString(key, quoteStyle));
+      function formatKey(key: string | symbol): string {
+        return (
+          typeof key === "symbol" ? c.symbol(key.toString())
+            // Always quote keys if `quoteKeys` is set to `"always"`
+          : quoteKeys === "always" ? c.string(stringifyString(key, quoteStyle))
+            // For string keys that are valid identifiers, we should show them as is
+          : /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? key
+            // For other string keys, we should wrap them with quotes
+          : c.string(stringifyString(key, quoteStyle))
+        );
+      }
 
       // Object key/value pair
       const objectEntries = otherKeys.map((key) => {

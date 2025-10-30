@@ -193,6 +193,7 @@ Aside from the features listed above, **showify** also supports many more specia
 **Collections:**
 
 - **Array:** `Array` objects are displayed as `[e1, e2, ...]`. Empty slots are displayed as `<${n} empty item${n === 1 ? "" : "s"}>`. For subclasses of `Array` or typed arrays, the `${className}` is displayed with its size, e.g., `MyArray(4) [1, <2 empty items>, 2, { foo: "bar" }]` or `Uint8Array(3) [1, 2, 3]`.
+- **Typed arrays:** Typed arrays (e.g., `Uint8Array`, `Int16Array`, etc.) are displayed as `${CtorName}(${length}) [v1, v2, ...]`. When `showHidden` is `"always"`, the following special properties are also displayed: `[BYTES_PER_ELEMENT]`, `[length]`, `[byteLength]`, `[byteOffset]`, and `[buffer]`.
 - **Long Arrays:** If `maxArrayLength` is set and the array has more elements than `maxArrayLength`, it is displayed as `[${e1}, ${e2}, ... ${n} more item${n === 1 ? "" : "s"}]`, e.g., `[1, 2, 3, 4, ... 2 more items]`.
 - **Map:** `Map` objects are displayed as `Map(${size}) { key1 => value1, key2 => value2, ... }`.
 - **Set:** `Set` objects are displayed as `Set(${size}) { value1, value2, ... }`.

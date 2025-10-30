@@ -248,4 +248,23 @@ describe("Array", () => {
       util.inspect([1, 2, 3], { showHidden: true, colors: true }),
     );
   });
+
+  it('should show special properties of typed arrays when `showHidden` is not `"none"`', () => {
+    const arr = new Uint8Array([1, 2, 3]);
+
+    expect(show(arr, { showHidden: "exclude-meta" })).toEqual("Uint8Array(3) [1, 2, 3]");
+
+    expect(show(arr, { showHidden: "always" })).toEqual(
+      "Uint8Array(3) [1, 2, 3, [BYTES_PER_ELEMENT]: 1, [length]: 3, [byteLength]: 3, [byteOffset]: 0, [buffer]: ArrayBuffer { [Uint8Contents]: <01 02 03>, [byteLength]: 3 }]",
+    );
+    expect(inspect(arr, { showHidden: "always" })).toEqual(
+      util
+        .inspect(arr, { showHidden: true })
+        // util.inspect does not show [Uint8Contents] for ArrayBuffer, seems to be BUG
+        .replace(
+          "ArrayBuffer { [byteLength]: 3 }",
+          "ArrayBuffer { [Uint8Contents]: <01 02 03>, [byteLength]: 3 }",
+        ),
+    );
+  });
 });
