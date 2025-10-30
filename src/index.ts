@@ -1047,10 +1047,14 @@ function buildTree(
       }
 
       // ArrayBuffer
-      else if (value instanceof ArrayBuffer) {
+      else if (
+        value instanceof ArrayBuffer ||
+        // @ts-expect-error - SharedArrayBuffer is only available in ES2017+
+        (typeof SharedArrayBuffer !== "undefined" && value instanceof SharedArrayBuffer)
+      ) {
         // Uint8Contents
         let contents = "<";
-        for (const byte of new Uint8Array(value)) {
+        for (const byte of new Uint8Array(value as ArrayBuffer)) {
           if (contents !== "<") contents += " ";
           let part = byte.toString(16);
           if (part.length === 1) part = "0" + part;
@@ -1061,7 +1065,7 @@ function buildTree(
           pair(text(c.special("[Uint8Contents]") + ": "), text(c.special(contents))),
         );
         // byteLength
-        pushExtraProperty("byteLength", value.byteLength);
+        pushExtraProperty("byteLength", (value as ArrayBuffer).byteLength);
       }
 
       // DataView

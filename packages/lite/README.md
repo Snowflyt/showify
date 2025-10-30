@@ -22,4 +22,4 @@ The following features are removed from the original package:
 - ANSI color support.
 - `quoteStyle` is limited to `"single"` or `"double"`.
 - The `showHidden: "exclude-meta"` option for `show()`.
-- Special support for `ArrayBuffer` and `DataView`.
+- Special support for `ArrayBuffer`, `SharedArrayBuffer` and `DataView`.
