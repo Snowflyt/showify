@@ -261,7 +261,15 @@ function stringify(
   },
 ): string {
   const { type } = node;
-  const { breakLength, forceWrap, indent, level, referencePointer, refs } = options;
+  const {
+    breakLength,
+    forceWrap,
+    indent,
+    level,
+    referencePointer,
+    refs,
+    restLineLength: originalRestLineLength,
+  } = options;
 
   if (type === "circular")
     return referencePointer ? `[Circular *${refs.get(node.ref)!}]` : "[Circular]";
@@ -284,34 +292,41 @@ function stringify(
   else if (type === "variant") {
     const { inline, wrap } = node;
 
-    if (!forceWrap) result = stringify(inline, Object.assign({}, options, { indent: 0 }));
+    if (!forceWrap) {
+      options.indent = 0;
+      result = stringify(inline, options);
+      options.indent = indent;
+    }
 
-    if (forceWrap || (indent && result.length > options.restLineLength))
-      result = stringify(
-        wrap,
-        Object.assign({}, options, { forceWrap: true, restLineLength: restLineLength() }),
-      );
+    if (forceWrap || (indent && result.length > originalRestLineLength)) {
+      options.forceWrap = true;
+      options.restLineLength = restLineLength();
+      result = stringify(wrap, options);
+      options.forceWrap = forceWrap;
+      options.restLineLength = originalRestLineLength;
+    }
   }
 
   // sequence
   else if (type === "sequence") {
     const { values } = node;
 
-    if (!forceWrap)
-      result = values
-        .map((value) => stringify(value, Object.assign({}, options, { indent: 0 })))
-        .join("");
-
-    if (forceWrap || (indent && result.length > options.restLineLength)) {
+    if (!forceWrap) {
+      options.indent = 0;
       result = "";
-      for (const value of values)
-        result += stringify(
-          value,
-          Object.assign({}, options, {
-            forceWrap: true,
-            restLineLength: restLineLength(),
-          }),
-        );
+      for (const value of values) result += stringify(value, options);
+      options.indent = indent;
+    }
+
+    if (forceWrap || (indent && result.length > originalRestLineLength)) {
+      options.forceWrap = true;
+      result = "";
+      for (const value of values) {
+        options.restLineLength = restLineLength();
+        result += stringify(value, options);
+      }
+      options.forceWrap = forceWrap;
+      options.restLineLength = originalRestLineLength;
     }
   }
 
@@ -320,11 +335,14 @@ function stringify(
   else if (type === "between") {
     const { close, open, values } = node;
 
-    if (!forceWrap)
-      result =
-        (open ? stringify(open, Object.assign({}, options, { indent: 0 })) : "") +
-        values.map((val) => stringify(val, Object.assign({}, options, { indent: 0 }))).join("") +
-        (close ? stringify(close, Object.assign({}, options, { indent: 0 })) : "");
+    if (!forceWrap) {
+      options.indent = 0;
+      result = "";
+      if (open) result += stringify(open, options);
+      for (const val of values) result += stringify(val, options);
+      if (close) result += stringify(close, options);
+      options.indent = indent;
+    }
 
     if (forceWrap || (indent && result.length > options.restLineLength)) {
       // Special-case: group array elements into columns like util.inspect
@@ -340,27 +358,23 @@ function stringify(
           groupArrayElements(values, options)) ||
         "";
       if (!result) {
-        result = open ? stringify(open, Object.assign({}, options, { forceWrap: false })) : "";
+        options.forceWrap = false;
+        if (open) result = stringify(open, options);
+        options.level = level + 1;
         for (let i = 0; i < values.length; i++) {
           const value = values[i]!;
           if (i !== 0 || result) result += "\n" + " ".repeat((level + 1) * indent);
-          result += stringify(
-            value,
-            Object.assign({}, options, {
-              level: level + 1,
-              forceWrap: false,
-              restLineLength: restLineLength(),
-            }),
-          );
+          options.restLineLength = restLineLength();
+          result += stringify(value, options);
         }
-        const after =
-          close ?
-            stringify(
-              close,
-              Object.assign({}, options, { forceWrap: false, restLineLength: restLineLength() }),
-            )
-          : "";
-        if (after) result += (values.length ? "\n" + " ".repeat(level * indent) : "") + after;
+        options.level = level;
+        if (close) {
+          options.restLineLength = restLineLength();
+          const after = stringify(close, options);
+          result += (values.length ? "\n" + " ".repeat(level * indent) : "") + after;
+        }
+        options.forceWrap = forceWrap;
+        options.restLineLength = originalRestLineLength;
       }
     }
   }
@@ -568,18 +582,34 @@ function buildTree(
 
   /* Helper functions */
   const expand = (v: unknown, opts: Partial<SerializerOptions> = {}) => {
-    const fullOptions = Object.assign(
-      {},
-      options,
-      {
-        omittedKeys: opts.omittedKeys || new Set(),
-        level: options.level + 1,
-        ancestors: ancestors.concat([value]),
-      },
-      opts,
-    );
-    if (fullOptions.level > fullOptions.depth + 1) throw new MaximumDepthError();
-    return buildTree(v, fullOptions);
+    // Mutate `options` in-place for performance, but restore original values after expansion
+    const prev = {} as typeof options;
+
+    // Always give nested call its own omittedKeys set
+    prev.omittedKeys = options.omittedKeys;
+    options.omittedKeys = opts.omittedKeys || new Set();
+
+    // Apply any other option overrides from `opts`, saving previous values
+    for (const k in opts) {
+      if (k === "omittedKeys") continue;
+      // Save previous value only once
+      if (!(k in prev)) (prev as any)[k] = (options as any)[k];
+      (options as any)[k] = (opts as any)[k];
+    }
+
+    // level and ancestors are always adjusted for nested expansion
+    prev.level = options.level;
+    options.level = options.level + 1;
+    prev.ancestors = options.ancestors;
+    options.ancestors = ancestors.concat([value]);
+
+    try {
+      if (options.level > options.depth + 1) throw new MaximumDepthError();
+      return buildTree(v, options);
+    } finally {
+      // Restore previous values
+      for (const k in prev) (options as any)[k] = (prev as any)[k];
+    }
   };
 
   /* Objects (including functions and arrays) */
@@ -626,11 +656,16 @@ function buildTree(
         !omittedKeys.has(CustomInspectSymbol) &&
         !(value instanceof Date) &&
         typeof (value as { [CustomInspectSymbol]?: unknown })[CustomInspectSymbol] === "function"
-      )
-        return (value as { [CustomInspectSymbol]: CustomInspectFunction })[CustomInspectSymbol](
-          options,
-          expand,
-        );
+      ) {
+        // Copy options to avoid mutation by custom inspect function
+        const originalOptions = options;
+        options = Object.assign({}, options);
+        const node = (value as { [CustomInspectSymbol]: CustomInspectFunction })[
+          CustomInspectSymbol
+        ](options, expand);
+        options = originalOptions;
+        return node;
+      }
       if (
         callNodeInspect &&
         !omittedKeys.has(NodeInspectSymbol) &&
@@ -647,11 +682,7 @@ function buildTree(
           },
         );
         if (typeof result === "string") return text(result);
-        return expand(
-          result,
-          // Keep all options as is
-          { omittedKeys, level: options.level, ancestors },
-        );
+        return buildTree(result, options);
       }
       if (
         callToJSON &&
@@ -659,11 +690,7 @@ function buildTree(
         !(value instanceof Date) &&
         typeof (value as { toJSON?: unknown }).toJSON === "function"
       )
-        return expand(
-          (value as { toJSON: () => unknown }).toJSON(),
-          // Keep all options as is
-          { omittedKeys, level: options.level, ancestors },
-        );
+        return buildTree((value as { toJSON: () => unknown }).toJSON(), options);
 
       /* Initial setup */
       let bodyStyle: "Array" | "Object" = "Object";
