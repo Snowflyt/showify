@@ -32,8 +32,10 @@ describe("Module", () => {
     expect(inspect(util, { colors: true, breakLength: Infinity })).toEqual(
       util.inspect(util, { colors: true, breakLength: Infinity }),
     );
-    expect(inspect(util, { colors: true, breakLength: Infinity, depth: Infinity })).toEqual(
-      util.inspect(util, { colors: true, breakLength: Infinity, depth: Infinity }),
-    );
+    // TODO: Uncomment this until Node.js fixes #60475
+    // See: https://github.com/nodejs/node/issues/60475
+    // expect(inspect(util, { colors: true, breakLength: Infinity, depth: Infinity })).toEqual(
+    //   util.inspect(util, { colors: true, breakLength: Infinity, depth: Infinity }),
+    // );
   });
 });

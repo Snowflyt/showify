@@ -29,5 +29,10 @@ describe("Module", () => {
     expect(inspect(util, { breakLength: Infinity })).toEqual(
       util.inspect(util, { breakLength: Infinity }),
     );
+    // TODO: Uncomment this until Node.js fixes #60475
+    // See: https://github.com/nodejs/node/issues/60475
+    // expect(inspect(util, { breakLength: Infinity, depth: Infinity })).toEqual(
+    //   util.inspect(util, { breakLength: Infinity, depth: Infinity }),
+    // );
   });
 });
