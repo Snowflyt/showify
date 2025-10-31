@@ -243,7 +243,17 @@ describe("Error", () => {
       error = e;
     }
 
-    expect(show(error)).toMatch(/^AbortError: The operation was aborted.*?\n {4}at /);
+    expect(show(error)).toMatch(
+      /^AbortError: The operation was aborted.*?\n {4}at .+\[cause\]: Error: boom\n/s,
+    );
+    expect(inspect(error)).toEqual(util.inspect(error));
+    expect(inspect(error, { showHidden: true })).toEqual(util.inspect(error, { showHidden: true }));
+  });
+
+  it("should show AggregateError.errors by default", () => {
+    const error = new AggregateError([new Error("foo"), new TypeError("bar")], "baz");
+
+    expect(show(error)).toMatch(/^AggregateError: baz\n {4}at .+\[errors\]: \[/s);
     expect(inspect(error)).toEqual(util.inspect(error));
     expect(inspect(error, { showHidden: true })).toEqual(util.inspect(error, { showHidden: true }));
   });

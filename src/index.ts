@@ -887,13 +887,18 @@ function buildTree(
         )
           otherKeys.push(key);
       }
-      // Preserve Error.cause
-      if (
-        value instanceof Error &&
-        allKeys.indexOf("cause") !== -1 &&
-        otherKeys.indexOf("cause") === -1
-      )
-        otherKeys.push("cause");
+      const ensurePreservedKeys = [
+        // Error.cause
+        value instanceof Error && "cause",
+        // AggregateError.errors
+        // @ts-expect-error - AggregateError is only available in ES2021+
+        typeof AggregateError !== "undefined" &&
+          // @ts-expect-error - AggregateError is only available in ES2021+
+          value instanceof AggregateError &&
+          "errors",
+      ].filter((k) => k) as string[];
+      for (const key of ensurePreservedKeys)
+        if (allKeys.indexOf(key) !== -1 && otherKeys.indexOf(key) === -1) otherKeys.push(key);
 
       // Array element
       const arrayEntries: Node[] = arrayItemKeys.map((key) =>
