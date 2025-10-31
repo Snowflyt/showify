@@ -115,64 +115,93 @@ describe("Array", () => {
       util.inspect([1, 2, 3, 4], { maxArrayLength: 4 }),
     );
     expect(show([1, 2, 3, 4, 5], { maxArrayLength: 4 })).toEqual("[1, 2, 3, 4, ... 1 more item]");
+    expect(inspect([1, 2, 3, 4, 5], { maxArrayLength: 4 })).toEqual(
+      util.inspect([1, 2, 3, 4, 5], { maxArrayLength: 4 }),
+    );
     expect(
-      show([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], { maxArrayLength: 10, indent: 2, breakLength: 16 }),
+      show([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], { maxArrayLength: 10, indent: 2, breakLength: 18 }),
     ).toEqual(
       trimIndent(`
-        [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
-          ... 1 more item
-        ]
-      `),
+          [
+            1,  2, 3, 4,
+            5,  6, 7, 8,
+            9, 10,
+            ... 1 more item
+          ]
+        `),
+    );
+    expect(
+      inspect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], {
+        maxArrayLength: 10,
+        breakLength: 18,
+      }),
+    ).toEqual(
+      util.inspect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], {
+        maxArrayLength: 10,
+        breakLength: 18,
+      }),
     );
     expect(
       show([1, 2, 3, 4, 5, 6, [7, "foo"], 8, 9, 10, 11, 12], {
         maxArrayLength: 10,
         indent: 2,
-        breakLength: 16,
+        breakLength: 18,
       }),
     ).toEqual(
       trimIndent(`
-        [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          [7, "foo"],
-          8,
-          9,
-          10,
-          ... 2 more items
-        ]
-      `),
+          [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            [7, "foo"],
+            8,
+            9,
+            10,
+            ... 2 more items
+          ]
+        `),
+    );
+    expect(
+      inspect([1, 2, 3, 4, 5, 6, [7, "foo"], 8, 9, 10, 11, 12], {
+        maxArrayLength: 10,
+        breakLength: 40,
+      }),
+    ).toEqual(
+      util.inspect([1, 2, 3, 4, 5, 6, [7, "foo"], 8, 9, 10, 11, 12], {
+        maxArrayLength: 10,
+        breakLength: 40,
+      }),
     );
     expect(
       show([1, 2, [3, "foo", "bar", "baz"], 4, 5, 6], {
         maxArrayLength: 3,
         arrayBracketSpacing: true,
         indent: 2,
-        breakLength: 40,
+        breakLength: 50,
       }),
     ).toEqual(
       trimIndent(`
-        [
-          1,
-          2,
-          [ 3, "foo", "bar", ... 1 more item ],
-          ... 3 more items
-        ]
-      `),
+          [
+            1,
+            2,
+            [ 3, "foo", "bar", ... 1 more item ],
+            ... 3 more items
+          ]
+        `),
+    );
+    expect(
+      inspect([1, 2, [3, "foo", "bar", "baz"], 4, 5, 6], {
+        maxArrayLength: 3,
+        breakLength: 50,
+      }),
+    ).toEqual(
+      util.inspect([1, 2, [3, "foo", "bar", "baz"], 4, 5, 6], {
+        maxArrayLength: 3,
+        breakLength: 50,
+      }),
     );
   });
 
@@ -228,5 +257,139 @@ describe("Array", () => {
     expect(inspect(arr, { indent: 2, breakLength: 16 })).toEqual(
       util.inspect(arr, { breakLength: 16 }),
     );
+  });
+
+  it("should not group elements for short arrays", () => {
+    const arr = Array.from({ length: 6 }, (_, i) => i + 1);
+
+    expect(show(arr, { indent: 2 })).toEqual("[1, 2, 3, 4, 5, 6]");
+    expect(inspect(arr)).toEqual(util.inspect(arr));
+
+    expect(show(arr, { indent: 2, maxArrayLength: 4 })).toEqual("[1, 2, 3, 4, ... 2 more items]");
+    expect(inspect(arr, { maxArrayLength: 4 })).toEqual(util.inspect(arr, { maxArrayLength: 4 }));
+
+    expect(show(arr, { indent: 2, maxArrayLength: 5 })).toEqual("[1, 2, 3, 4, 5, ... 1 more item]");
+    expect(inspect(arr, { maxArrayLength: 5 })).toEqual(util.inspect(arr, { maxArrayLength: 5 }));
+  });
+
+  it("should not group elements if huge gaps may occur", () => {
+    const arr = [1, 2, 3, 4, "long string", 5, 6, 7, 8, 9, 10];
+
+    expect(show(arr, { indent: 2, breakLength: 30 })).toEqual(
+      trimIndent(`
+          [
+            1,
+            2,
+            3,
+            4,
+            "long string",
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        `),
+    );
+    expect(inspect(arr, { breakLength: 30 })).toEqual(util.inspect(arr, { breakLength: 30 }));
+
+    expect(show(arr, { indent: 2, breakLength: 30, maxArrayLength: 8 })).toEqual(
+      trimIndent(`
+          [
+            1,
+            2,
+            3,
+            4,
+            "long string",
+            5,
+            6,
+            7,
+            ... 3 more items
+          ]
+        `),
+    );
+    expect(inspect(arr, { breakLength: 30, maxArrayLength: 8 })).toEqual(
+      util.inspect(arr, { breakLength: 30, maxArrayLength: 8 }),
+    );
+  });
+
+  it("should group elements for arrays with many short elements", () => {
+    let arr: unknown[] = Array.from({ length: 100 }, (_, i) => i + 1);
+
+    expect(show(arr, { indent: 2 })).toEqual(
+      trimIndent(`
+          [
+             1,  2,  3,   4,  5,  6,  7,  8,  9, 10, 11, 12,
+            13, 14, 15,  16, 17, 18, 19, 20, 21, 22, 23, 24,
+            25, 26, 27,  28, 29, 30, 31, 32, 33, 34, 35, 36,
+            37, 38, 39,  40, 41, 42, 43, 44, 45, 46, 47, 48,
+            49, 50, 51,  52, 53, 54, 55, 56, 57, 58, 59, 60,
+            61, 62, 63,  64, 65, 66, 67, 68, 69, 70, 71, 72,
+            73, 74, 75,  76, 77, 78, 79, 80, 81, 82, 83, 84,
+            85, 86, 87,  88, 89, 90, 91, 92, 93, 94, 95, 96,
+            97, 98, 99, 100
+          ]
+        `),
+    );
+    expect(inspect(arr)).toEqual(util.inspect(arr));
+
+    expect(show(arr, { indent: 2, maxArrayLength: 60 })).toEqual(
+      trimIndent(`
+          [
+             1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12,
+            13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+            25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+            37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
+            49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+            ... 40 more items
+          ]
+        `),
+    );
+    expect(inspect(arr, { maxArrayLength: 60 })).toEqual(util.inspect(arr, { maxArrayLength: 60 }));
+
+    arr = Array.from({ length: 100 }, (_, i) => "s" + (i + 1));
+
+    expect(show(arr, { indent: 2 })).toEqual(
+      trimIndent(`
+          [
+            "s1",  "s2",  "s3",  "s4",   "s5",  "s6",  "s7",  "s8",
+            "s9",  "s10", "s11", "s12",  "s13", "s14", "s15", "s16",
+            "s17", "s18", "s19", "s20",  "s21", "s22", "s23", "s24",
+            "s25", "s26", "s27", "s28",  "s29", "s30", "s31", "s32",
+            "s33", "s34", "s35", "s36",  "s37", "s38", "s39", "s40",
+            "s41", "s42", "s43", "s44",  "s45", "s46", "s47", "s48",
+            "s49", "s50", "s51", "s52",  "s53", "s54", "s55", "s56",
+            "s57", "s58", "s59", "s60",  "s61", "s62", "s63", "s64",
+            "s65", "s66", "s67", "s68",  "s69", "s70", "s71", "s72",
+            "s73", "s74", "s75", "s76",  "s77", "s78", "s79", "s80",
+            "s81", "s82", "s83", "s84",  "s85", "s86", "s87", "s88",
+            "s89", "s90", "s91", "s92",  "s93", "s94", "s95", "s96",
+            "s97", "s98", "s99", "s100"
+          ]
+        `),
+    );
+    expect(inspect(arr)).toEqual(util.inspect(arr));
+
+    expect(show(arr, { indent: 2, maxArrayLength: 90 })).toEqual(
+      trimIndent(`
+          [
+            "s1",  "s2",  "s3",  "s4",  "s5",  "s6",  "s7",  "s8",
+            "s9",  "s10", "s11", "s12", "s13", "s14", "s15", "s16",
+            "s17", "s18", "s19", "s20", "s21", "s22", "s23", "s24",
+            "s25", "s26", "s27", "s28", "s29", "s30", "s31", "s32",
+            "s33", "s34", "s35", "s36", "s37", "s38", "s39", "s40",
+            "s41", "s42", "s43", "s44", "s45", "s46", "s47", "s48",
+            "s49", "s50", "s51", "s52", "s53", "s54", "s55", "s56",
+            "s57", "s58", "s59", "s60", "s61", "s62", "s63", "s64",
+            "s65", "s66", "s67", "s68", "s69", "s70", "s71", "s72",
+            "s73", "s74", "s75", "s76", "s77", "s78", "s79", "s80",
+            "s81", "s82", "s83", "s84", "s85", "s86", "s87", "s88",
+            "s89", "s90",
+            ... 10 more items
+          ]
+        `),
+    );
+    expect(inspect(arr, { maxArrayLength: 90 })).toEqual(util.inspect(arr, { maxArrayLength: 90 }));
   });
 });

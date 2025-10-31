@@ -15,7 +15,7 @@
   </a>
 </p>
 
-A lightweight (and faster) implementation of the [showify](https://github.com/Snowflyt/showify) package under 4kB of minified+gzipped code.
+A lightweight (and faster) implementation of the [showify](https://github.com/Snowflyt/showify) package under 5kB of minified+gzipped code.
 
 The following features are removed from the original package:
 

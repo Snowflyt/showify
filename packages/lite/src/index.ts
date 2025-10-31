@@ -327,27 +327,41 @@ function stringify(
         (close ? stringify(close, Object.assign({}, options, { indent: 0 })) : "");
 
     if (forceWrap || (indent && result.length > options.restLineLength)) {
-      result = open ? stringify(open, Object.assign({}, options, { forceWrap: false })) : "";
-      for (let i = 0; i < values.length; i++) {
-        const value = values[i]!;
-        if (i !== 0 || result) result += "\n" + " ".repeat((level + 1) * indent);
-        result += stringify(
-          value,
-          Object.assign({}, options, {
-            level: level + 1,
-            forceWrap: false,
-            restLineLength: restLineLength(),
-          }),
-        );
+      // Special-case: group array elements into columns like util.inspect
+      result =
+        (indent &&
+          values.length > 6 && // Only group if there are more than 6 items
+          open &&
+          close &&
+          open.type === "text" &&
+          close.type === "text" &&
+          open.value === "[" &&
+          close.value === "]" &&
+          groupArrayElements(values, options)) ||
+        "";
+      if (!result) {
+        result = open ? stringify(open, Object.assign({}, options, { forceWrap: false })) : "";
+        for (let i = 0; i < values.length; i++) {
+          const value = values[i]!;
+          if (i !== 0 || result) result += "\n" + " ".repeat((level + 1) * indent);
+          result += stringify(
+            value,
+            Object.assign({}, options, {
+              level: level + 1,
+              forceWrap: false,
+              restLineLength: restLineLength(),
+            }),
+          );
+        }
+        const after =
+          close ?
+            stringify(
+              close,
+              Object.assign({}, options, { forceWrap: false, restLineLength: restLineLength() }),
+            )
+          : "";
+        if (after) result += (values.length ? "\n" + " ".repeat(level * indent) : "") + after;
       }
-      const after =
-        close ?
-          stringify(
-            close,
-            Object.assign({}, options, { forceWrap: false, restLineLength: restLineLength() }),
-          )
-        : "";
-      if (after) result += (values.length ? "\n" + " ".repeat(level * indent) : "") + after;
     }
   }
   /* Handle nodes end */
@@ -359,6 +373,122 @@ function stringify(
   }
 
   return result;
+}
+
+/**
+ * Render an array body by grouping items into columns similar to Node.js’s `util.inspect`.
+ * Returns `null` if grouping should not be applied (falls back to default rendering).
+ *
+ * Adapted from the `groupArrayElements` function in Node.js’s `util.inspect` implementation:
+ * <https://github.com/nodejs/node/blob/fdcf4d9454f050d199c49ff25f25d7bad133ff56/lib/internal/util/inspect.js#L2025-L2133>
+ * @param nodes The array of nodes representing the items in the array.
+ * @param options The options for stringification.
+ * @returns The grouped multiline string or `null` if grouping is not applied.
+ */
+function groupArrayElements(
+  nodes: Node[],
+  options: Parameters<typeof stringify>[1],
+): string | null {
+  const { breakLength, indent, level } = options;
+
+  nodes = nodes.slice();
+  const extraNodes: Node[] = [];
+
+  // Separate trailing "... n more items" if present
+  const last = nodes[nodes.length - 1];
+  if (last && last.type === "text" && last.value.startsWith("... "))
+    extraNodes.unshift(nodes.pop()!);
+
+  // Extract base node (without trailing comma) and remember original trailing-comma
+  const items = nodes.map((node) =>
+    (
+      node.type === "sequence" &&
+      node.values.length === 2 &&
+      node.values[1]!.type === "text" &&
+      node.values[1]!.value === ","
+    ) ?
+      { base: node.values[0]!, hasComma: true }
+    : { base: node, hasComma: false },
+  );
+
+  // Render each base node inline
+  const noIndentOptions = Object.assign({}, options, { indent: 0 });
+  const out = Array(items.length) as string[];
+  const dataLen = Array(items.length) as number[];
+  let totalLength = 0;
+  let maxLength = 0;
+  const separatorSpace = 2; // 1 for comma, 1 for space
+  for (let i = 0; i < items.length; i++) {
+    const s = stringify(items[i]!.base, noIndentOptions);
+    out[i] = s;
+    const len = s.length;
+    dataLen[i] = len;
+    totalLength += len + separatorSpace;
+    if (len > maxLength) maxLength = len;
+  }
+
+  const actualMax = maxLength + separatorSpace;
+  const currentIndent = (level + 1) * indent;
+  // At least three entries per row and avoid huge gaps
+  if (
+    !(
+      actualMax * 3 + currentIndent < breakLength &&
+      (totalLength / actualMax > 5 || maxLength <= 6)
+    )
+  )
+    return null;
+
+  // Decide columns
+  const approxCharHeights = 2.5;
+  const averageBias = Math.sqrt(actualMax - totalLength / items.length);
+  const biasedMax = Math.max(actualMax - 3 - averageBias, 1);
+  // Dynamically check how many columns seem possible.
+  const columns = Math.min(
+    // Ideally a square should be drawn. We expect a character to be about 2.5 times as high as wide
+    // This is the area formula to calculate a square which contains n rectangles of size `actualMax * approxCharHeights`
+    // Divide that by `actualMax` to receive the correct number of columns
+    // The added bias increases the columns for short entries
+    Math.round(Math.sqrt(approxCharHeights * biasedMax * items.length) / biasedMax),
+    // Do not exceed breakLength
+    Math.floor((breakLength - currentIndent) / actualMax),
+    // Limit the columns to a maximum of twelve
+    12,
+  );
+  if (columns <= 1) return null;
+
+  // Compute per-column max printable length (plus separator slot)
+  const maxLineLength = Array(columns) as number[];
+  for (let i = 0; i < columns; i++) {
+    let lineMax = 0;
+    for (let j = i; j < items.length; j += columns) lineMax = Math.max(lineMax, dataLen[j]!);
+    maxLineLength[i] = lineMax + separatorSpace;
+  }
+
+  // Numeric right-align if all look numeric; otherwise left-align
+  let pad = padStart;
+  for (const s of out)
+    if (!isNumericLike(s.trim())) {
+      pad = padEnd;
+      break;
+    }
+
+  // Build grouped lines
+  const lines: string[] = [];
+  for (let i = 0; i < items.length; i += columns) {
+    const max = Math.min(i + columns, items.length);
+    let line = "";
+    let j = i;
+    for (; j < max - 1; j++) line += pad(out[j]! + ", ", maxLineLength[j - i]!);
+    line += pad === padStart ? pad(out[j]!, maxLineLength[j - i]! + -separatorSpace) : out[j]!;
+    if (items[j]!.hasComma) line += ",";
+    lines.push(line);
+  }
+
+  const padPrefix = " ".repeat((level + 1) * indent);
+  let result = "[";
+  for (const line of lines) result += "\n" + padPrefix + line;
+  for (const node of extraNodes) result += "\n" + padPrefix + stringify(node, options);
+  return result + "\n" + " ".repeat(level * indent) + "]";
 }
 
 class MaximumDepthError extends Error {}
@@ -1145,6 +1275,18 @@ function isPositiveIntegerKey(key: string | symbol): key is `${number}` {
 }
 
 /**
+ * Check whether a string looks like a number/bigint literal or a numeric special
+ * (NaN/Infinity/-Infinity/-0). Used to decide right-align (padStart) vs left-align.
+ * @param s The string to check.
+ * @returns Whether the string is numeric-like.
+ */
+function isNumericLike(s: string): boolean {
+  // Allow bigint suffix 'n'
+  if (/^-?\d+(?:_\d+)*(?:\.\d+(?:_\d+)*)?(?:e[+-]?\d+)?n?$/.test(s)) return true;
+  return s === "NaN" || s === "Infinity" || s === "-Infinity" || s === "-0";
+}
+
+/**
  * Format an error stack if it is valid, otherwise return `null`.
  * @param stack The stack to format.
  * @param prefix The prefix used to format the stack.
@@ -1242,6 +1384,14 @@ function isESModule(value: object) {
     desc.enumerable === false &&
     desc.configurable === false
   );
+}
+
+/* `padStart` and `padEnd` for ES2015 */
+function padStart(s: string, length: number): string {
+  return s.length >= length ? s : " ".repeat(length - s.length) + s;
+}
+function padEnd(s: string, length: number): string {
+  return s.length >= length ? s : s + " ".repeat(length - s.length);
 }
 
 /**
