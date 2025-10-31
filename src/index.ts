@@ -1840,7 +1840,22 @@ function formatErrorStack(stack: string, prefix: string): string | null {
  * @returns
  */
 function isObject(value: unknown): value is object {
-  return value !== null && (typeof value === "object" || typeof value === "function");
+  return (
+    (value !== null && (typeof value === "object" || typeof value === "function")) ||
+    isUndetectableObject(value)
+  );
+}
+
+/**
+ * Detect undetectable objects (aka [[IsHTMLDDA]] values like `document.all`).
+ *
+ * See: <https://tc39.es/ecma262/#sec-IsHTMLDDA-internal-slot>
+ * @param value The value to check.
+ * @returns
+ */
+function isUndetectableObject(value: unknown): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  return typeof value === "undefined" && value !== undefined;
 }
 
 /**
