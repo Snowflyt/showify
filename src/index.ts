@@ -1054,16 +1054,24 @@ function buildTree(
       ) {
         // Uint8Contents
         let contents = "<";
-        for (const byte of new Uint8Array(value as ArrayBuffer)) {
-          if (contents !== "<") contents += " ";
-          let part = byte.toString(16);
-          if (part.length === 1) part = "0" + part;
-          contents += part;
+        let buffer: Uint8Array | undefined;
+        try {
+          buffer = new Uint8Array(value as ArrayBuffer);
+        } catch (e) {
+          extraEntries.push(text(c.special("(detached)")));
         }
-        contents += ">";
-        extraEntries.push(
-          pair(text(c.special("[Uint8Contents]") + ": "), text(c.special(contents))),
-        );
+        if (buffer) {
+          for (const byte of buffer) {
+            if (contents !== "<") contents += " ";
+            let part = byte.toString(16);
+            if (part.length === 1) part = "0" + part;
+            contents += part;
+          }
+          contents += ">";
+          extraEntries.push(
+            pair(text(c.special("[Uint8Contents]") + ": "), text(c.special(contents))),
+          );
+        }
         // byteLength
         pushExtraProperty("byteLength", (value as ArrayBuffer).byteLength);
       }

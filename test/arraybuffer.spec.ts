@@ -134,4 +134,14 @@ describe("SharedArrayBuffer", () => {
     // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
     // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
+
+  it("should show detached array buffer", () => {
+    const buffer = new ArrayBuffer(8);
+    buffer.transfer();
+
+    expect(show(buffer)).toEqual("ArrayBuffer { (detached), [byteLength]: 0 }");
+    expect(inspect(buffer)).toEqual(util.inspect(buffer));
+    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
+    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+  });
 });
