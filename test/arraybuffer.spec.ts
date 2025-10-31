@@ -135,6 +135,34 @@ describe("SharedArrayBuffer", () => {
     // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
+  it("should show [Uint8Contents] truncated when `maxArrayLength` is exceeded", () => {
+    let buffer = new ArrayBuffer(6);
+    let view = new Uint8Array(buffer);
+    view.set([0, 1, 2, 3, 4, 5]);
+
+    expect(show(buffer, { maxArrayLength: 5 })).toEqual(
+      "ArrayBuffer { [Uint8Contents]: <00 01 02 03 04 ... 1 more byte>, [byteLength]: 6 }",
+    );
+    expect(inspect(buffer, { maxArrayLength: 5 })).toEqual(
+      util.inspect(buffer, { maxArrayLength: 5 }),
+    );
+    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
+    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+
+    buffer = new ArrayBuffer(10);
+    view = new Uint8Array(buffer);
+    view.set([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+    expect(show(buffer, { maxArrayLength: 7 })).toEqual(
+      "ArrayBuffer { [Uint8Contents]: <00 01 02 03 04 05 06 ... 3 more bytes>, [byteLength]: 10 }",
+    );
+    expect(inspect(buffer, { maxArrayLength: 7 })).toEqual(
+      util.inspect(buffer, { maxArrayLength: 7 }),
+    );
+    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
+    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+  });
+
   it("should show detached array buffer", () => {
     const buffer = new ArrayBuffer(8);
     buffer.transfer();

@@ -1061,12 +1061,16 @@ function buildTree(
           extraEntries.push(text(c.special("(detached)")));
         }
         if (buffer) {
-          for (const byte of buffer) {
+          let i = 0;
+          for (; i < Math.min(maxArrayLength, buffer.length); i++) {
+            const byte = buffer[i]!;
             if (contents !== "<") contents += " ";
             let part = byte.toString(16);
             if (part.length === 1) part = "0" + part;
             contents += part;
           }
+          if (i < buffer.length)
+            contents += ` ... ${buffer.length - i} more byte${buffer.length - i === 1 ? "" : "s"}`;
           contents += ">";
           extraEntries.push(
             pair(text(c.special("[Uint8Contents]") + ": "), text(c.special(contents))),
