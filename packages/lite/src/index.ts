@@ -710,7 +710,7 @@ function buildTree(
           // Always quote keys if `quoteKeys` is set to `"always"`
         : quoteKeys === "always" ? stringifyString(key, quoteStyle)
           // For string keys that are valid identifiers, we should show them as is
-        : isIdentifier(key) ? key
+        : /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? key
           // For other string keys, we should wrap them with quotes
         : stringifyString(key, quoteStyle);
 
@@ -1148,14 +1148,6 @@ function stringifyNumber(value: number | bigint, sep: "none" | (string & {}) | b
     (parts[1] ? "." + parts[1].replace(/(\d{3})/g, "$1" + (sep === true ? "_" : sep)) : "") +
     (typeof value === "bigint" ? "n" : "")
   );
-}
-
-/**
- * Check if a name is a valid JavaScript identifier.
- * @returns
- */
-function isIdentifier(name: string): boolean {
-  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
 }
 
 /**
