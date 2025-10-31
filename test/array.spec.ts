@@ -121,31 +121,57 @@ describe("Array", () => {
     expect(inspect([1, 2, 3, 4], { maxArrayLength: 4 })).toEqual(
       util.inspect([1, 2, 3, 4], { maxArrayLength: 4 }),
     );
+    expect(inspect([1, 2, 3, 4], { maxArrayLength: 4, colors: true })).toEqual(
+      util.inspect([1, 2, 3, 4], { maxArrayLength: 4, colors: true }),
+    );
     expect(show([1, 2, 3, 4, 5], { maxArrayLength: 4 })).toEqual("[1, 2, 3, 4, ... 1 more item]");
+    expect(inspect([1, 2, 3, 4, 5], { maxArrayLength: 4 })).toEqual(
+      util.inspect([1, 2, 3, 4, 5], { maxArrayLength: 4 }),
+    );
+    expect(inspect([1, 2, 3, 4, 5], { maxArrayLength: 4, colors: true })).toEqual(
+      util.inspect([1, 2, 3, 4, 5], { maxArrayLength: 4, colors: true }),
+    );
     expect(
-      show([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], { maxArrayLength: 10, indent: 2, breakLength: 16 }),
+      show([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], { maxArrayLength: 10, indent: 2, breakLength: 18 }),
     ).toEqual(
       trimIndent(`
         [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
-          10,
+          1,  2, 3, 4,
+          5,  6, 7, 8,
+          9, 10,
           ... 1 more item
         ]
       `),
     );
     expect(
+      inspect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], {
+        maxArrayLength: 10,
+        breakLength: 18,
+      }),
+    ).toEqual(
+      util.inspect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], {
+        maxArrayLength: 10,
+        breakLength: 18,
+      }),
+    );
+    expect(
+      inspect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], {
+        maxArrayLength: 10,
+        breakLength: 18,
+        colors: true,
+      }),
+    ).toEqual(
+      util.inspect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11], {
+        maxArrayLength: 10,
+        breakLength: 18,
+        colors: true,
+      }),
+    );
+    expect(
       show([1, 2, 3, 4, 5, 6, [7, "foo"], 8, 9, 10, 11, 12], {
         maxArrayLength: 10,
         indent: 2,
-        breakLength: 16,
+        breakLength: 18,
       }),
     ).toEqual(
       trimIndent(`
@@ -165,11 +191,35 @@ describe("Array", () => {
       `),
     );
     expect(
+      inspect([1, 2, 3, 4, 5, 6, [7, "foo"], 8, 9, 10, 11, 12], {
+        maxArrayLength: 10,
+        breakLength: 40,
+      }),
+    ).toEqual(
+      util.inspect([1, 2, 3, 4, 5, 6, [7, "foo"], 8, 9, 10, 11, 12], {
+        maxArrayLength: 10,
+        breakLength: 40,
+      }),
+    );
+    expect(
+      inspect([1, 2, 3, 4, 5, 6, [7, "foo"], 8, 9, 10, 11, 12], {
+        maxArrayLength: 10,
+        breakLength: 40,
+        colors: true,
+      }),
+    ).toEqual(
+      util.inspect([1, 2, 3, 4, 5, 6, [7, "foo"], 8, 9, 10, 11, 12], {
+        maxArrayLength: 10,
+        breakLength: 40,
+        colors: true,
+      }),
+    );
+    expect(
       show([1, 2, [3, "foo", "bar", "baz"], 4, 5, 6], {
         maxArrayLength: 3,
         arrayBracketSpacing: true,
         indent: 2,
-        breakLength: 40,
+        breakLength: 50,
       }),
     ).toEqual(
       trimIndent(`
@@ -180,6 +230,30 @@ describe("Array", () => {
           ... 3 more items
         ]
       `),
+    );
+    expect(
+      inspect([1, 2, [3, "foo", "bar", "baz"], 4, 5, 6], {
+        maxArrayLength: 3,
+        breakLength: 50,
+      }),
+    ).toEqual(
+      util.inspect([1, 2, [3, "foo", "bar", "baz"], 4, 5, 6], {
+        maxArrayLength: 3,
+        breakLength: 50,
+      }),
+    );
+    expect(
+      inspect([1, 2, [3, "foo", "bar", "baz"], 4, 5, 6], {
+        maxArrayLength: 3,
+        breakLength: 50,
+        colors: true,
+      }),
+    ).toEqual(
+      util.inspect([1, 2, [3, "foo", "bar", "baz"], 4, 5, 6], {
+        maxArrayLength: 3,
+        breakLength: 50,
+        colors: true,
+      }),
     );
   });
 
