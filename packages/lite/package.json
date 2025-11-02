@@ -1,6 +1,6 @@
 {
   "name": "@showify/lite",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": true,
   "description": "A lightweight (and faster) implementation of the `showify` package under 5kB of minified+gzipped code.",
   "keywords": [
