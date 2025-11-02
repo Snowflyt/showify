@@ -5,6 +5,6 @@
     "lib": ["ESNext"],
     "module": "ESNext"
   },
-  "include": ["test"],
+  "include": ["test", "bench"],
   "exclude": []
 }
