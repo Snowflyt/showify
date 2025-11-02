@@ -717,18 +717,34 @@ function buildTree(
         : stringifyString(key, quoteStyle);
 
       const allKeys = Reflect.ownKeys(value).filter((key) => !omittedKeys.has(key));
-      const arrayItemKeys: string[] = [];
+      const arrayItemKeys: (string | number)[] = []; // `number` used to mark empty slots here
       let hiddenArrayItemsCount = 0;
       const otherKeys = [];
-      for (const key of allKeys) {
+      let firstArrayIndex = -1;
+      for (let i = 0; i < allKeys.length; i++) {
+        const key = allKeys[i]!;
+
         if (bodyStyle === "Array" && isPositiveIntegerKey(key)) {
           if (arrayItemKeys.length === maxArrayLength) {
             hiddenArrayItemsCount++;
             continue;
           }
+
           arrayItemKeys.push(key);
+
+          // Add empty item markers for sparse arrays
+          if (Array.isArray(value)) {
+            const index = Number(key);
+            if (firstArrayIndex === -1) firstArrayIndex = index;
+            let j = i + 1;
+            for (; j < allKeys.length; j++) if (isPositiveIntegerKey(allKeys[j]!)) break;
+            const nextIndex = Number(allKeys[j] || value.length || "");
+            if (nextIndex !== index + 1) arrayItemKeys.push(nextIndex - index - 1);
+          }
+
           continue;
         }
+
         // Hide non-enumerable keys when `showHidden` is `"none"`
         if (
           (showHidden !== "none" && showHidden !== false) ||
@@ -737,6 +753,12 @@ function buildTree(
         )
           otherKeys.push(key);
       }
+      // Handle prefix empty slots
+      if (
+        Array.isArray(value) &&
+        (firstArrayIndex = firstArrayIndex === -1 ? value.length : firstArrayIndex)
+      )
+        arrayItemKeys.unshift(firstArrayIndex);
       const ensurePreservedKeys = [
         // Error.cause
         value instanceof Error && "cause",
@@ -752,7 +774,9 @@ function buildTree(
 
       // Array element
       const arrayEntries: Node[] = arrayItemKeys.map((key) =>
-        expand(value[key as keyof typeof value]),
+        typeof key === "number" ?
+          text(`<${key} empty item${key === 1 ? "" : "s"}>`)
+        : expand(value[key as keyof typeof value]),
       );
       if (hiddenArrayItemsCount)
         arrayEntries.push(
@@ -865,31 +889,6 @@ function buildTree(
       // WeakMap and WeakSet
       else if (value instanceof WeakMap || value instanceof WeakSet) {
         extraEntries.push(text("<items unknown>"));
-      }
-
-      // Empty item markers for arrays
-      else if (Array.isArray(value)) {
-        const integerKeys = Reflect.ownKeys(value).filter(isPositiveIntegerKey).map(Number);
-        let pointer = 1;
-        for (let i = 0; i < integerKeys.length - 1; i++) {
-          const key = integerKeys[i]!;
-          const nextKey = integerKeys[i + 1]!;
-          if (nextKey === key + 1) {
-            pointer++;
-            continue;
-          }
-          const str = `<${nextKey - key - 1} empty item${nextKey - key - 1 === 1 ? "" : "s"}>`;
-          arrayEntries.splice(pointer, 0, text(str));
-          pointer += 2;
-        }
-        // Insert trailing empty item markers if necessary
-        let lastKey = integerKeys[integerKeys.length - 1];
-        if (lastKey === undefined) lastKey = -1;
-        const len = value.length;
-        if (lastKey < len - 1) {
-          const str = `<${len - lastKey - 1} empty item${len - lastKey - 1 === 1 ? "" : "s"}>`;
-          arrayEntries.push(text(str));
-        }
       }
 
       /* Build body */

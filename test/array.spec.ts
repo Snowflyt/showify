@@ -29,6 +29,15 @@ describe("Array", () => {
     expect(inspect([1, , 3, , , 6], { colors: true })).toEqual(
       util.inspect([1, , 3, , , 6], { colors: true }),
     );
+    // Prefix empty slots
+    expect(show([, 2, 3])).toEqual("[<1 empty item>, 2, 3]");
+    expect(inspect([, 2, 3])).toEqual(util.inspect([, 2, 3]));
+    expect(inspect([, 2, 3], { colors: true })).toEqual(util.inspect([, 2, 3], { colors: true }));
+    expect(show([, , , 4, 5])).toEqual("[<3 empty items>, 4, 5]");
+    expect(inspect([, , , 4, 5])).toEqual(util.inspect([, , , 4, 5]));
+    expect(inspect([, , , 4, 5], { colors: true })).toEqual(
+      util.inspect([, , , 4, 5], { colors: true }),
+    );
     // Trailing empty slots
     expect(show([1, 2, 3, ,])).toEqual("[1, 2, 3, <1 empty item>]");
     expect(inspect([1, 2, 3, ,])).toEqual(util.inspect([1, 2, 3, ,]));
