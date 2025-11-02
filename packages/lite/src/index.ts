@@ -606,6 +606,7 @@ function buildTree(
   if (typeof value === "boolean") return text(value.toString());
 
   /* Helper functions */
+  const canExpandDeeper = options.level <= options.depth;
   const expand = (v: unknown, opts: Partial<SerializerOptions> = {}) => {
     // Mutate `options` in-place for performance, but restore original values after expansion
     const prev = {} as typeof options;
@@ -717,438 +718,470 @@ function buildTree(
       )
         return buildTree((value as { toJSON: () => unknown }).toJSON(), options);
 
-      /* Initial setup */
-      let bodyStyle: "Array" | "Object" = "Object";
-      let prefix: Node | undefined = undefined;
-      const extraEntries: Node[] = []; // Before main entries
-      let removeEmptyBody = false;
-      let tmp: unknown;
+      // eslint-disable-next-line sonarjs/no-labels
+      abort: do {
+        /* Initial setup */
+        let bodyStyle: "Array" | "Object" = "Object";
+        let prefix: Node | undefined = undefined;
+        const extraEntries: Node[] = []; // Before main entries
+        let removeEmptyBody = false;
+        let tmp: unknown;
 
-      /* Build prefix for special cases */
-      // `Date`, `RegExp` and `Error`
-      if (value instanceof Date || value instanceof RegExp) {
-        const type = value instanceof Date ? "Date" : "RegExp";
-        let str =
-          type === "Date" ?
-            isNaN(value as any) ? "Invalid Date"
-            : (value as Date).toISOString()
-          : value.toString();
-        // The rule of `Symbol.toStringTag` for `Date`s and `RegExp`s is different from other
-        // objects, so we should handle it here.
-        const toStringTag = getToStringTag(value, showHidden);
-        const classNameWithTag = className + (toStringTag ? ` [${toStringTag}]` : "");
-        if (classNameWithTag !== type) str = `${classNameWithTag} ${str}`;
-        prefix = text(str);
-        removeEmptyBody = true;
-      } else if (value instanceof Error) {
-        if (value.stack) {
-          const errorName =
-            Object.prototype.hasOwnProperty.call(value, "name") ? value.name : className;
-          let str = value.stack;
-          const lines = str.split("\n");
-          // Force error name to be its `name` property if the error stack is valid
-          if (
-            lines.length >= 2 &&
-            !lines[0]!.startsWith("    at") &&
-            lines[1]!.startsWith("    at")
-          ) {
-            let errorNameInStack = lines[0]!.split(" ", 1)[0]!;
-            if (errorNameInStack.endsWith(":")) errorNameInStack = errorNameInStack.slice(0, -1);
-            str = errorName + str.slice(errorNameInStack.length);
-          }
-          let stackPrefix = errorName + (value.message ? `: ${value.message}` : "");
-          // The rule of `Symbol.toStringTag` for `Error`s is different from other
+        /* Build prefix for special cases */
+        // `Date`, `RegExp` and `Error`
+        if (value instanceof Date || value instanceof RegExp) {
+          const type = value instanceof Date ? "Date" : "RegExp";
+          let str =
+            type === "Date" ?
+              isNaN(value as any) ? "Invalid Date"
+              : (value as Date).toISOString()
+            : value.toString();
+          // The rule of `Symbol.toStringTag` for `Date`s and `RegExp`s is different from other
           // objects, so we should handle it here.
           const toStringTag = getToStringTag(value, showHidden);
-          if (toStringTag) {
-            // Escape special characters in the class name
-            // Copied from: https://stackoverflow.com/a/3561711/21418758
-            const errorNameRegEx = new RegExp(
-              `^${errorName.replace(/[/\-\\^$*+?.()|[\]{}]/, "\\$&")}(?=:|$|\n)`,
-              "m",
-            );
-            str = str.replace(errorNameRegEx, `${errorName} [${toStringTag}]`);
-            stackPrefix = stackPrefix.replace(errorNameRegEx, `${errorName} [${toStringTag}]`);
-          }
-          const stack = formatErrorStack(str, stackPrefix);
-          if (!stack || !stack.includes("\n")) {
-            prefix = text(stack || `[${str}]`);
-          } else {
-            prefix = variant(
-              text(stack),
-              between(
-                stack
-                  .split("\n")
-                  .map((line, i) =>
-                    // De-indent 4-space padding to 2-space padding so `between` nodes can format
-                    // the stack back to 4-space padding
-                    i !== 0 && line.startsWith("    at") ? line.slice(2) : line,
-                  )
-                  .map(text),
-              ),
-            );
-          }
-        } else {
-          const toStringTag = getToStringTag(value, showHidden);
           const classNameWithTag = className + (toStringTag ? ` [${toStringTag}]` : "");
+          if (classNameWithTag !== type) str = `${classNameWithTag} ${str}`;
+          prefix = text(str);
+          removeEmptyBody = true;
+        } else if (value instanceof Error) {
+          if (value.stack) {
+            const errorName =
+              Object.prototype.hasOwnProperty.call(value, "name") ? value.name : className;
+            let str = value.stack;
+            const lines = str.split("\n");
+            // Force error name to be its `name` property if the error stack is valid
+            if (
+              lines.length >= 2 &&
+              !lines[0]!.startsWith("    at") &&
+              lines[1]!.startsWith("    at")
+            ) {
+              let errorNameInStack = lines[0]!.split(" ", 1)[0]!;
+              if (errorNameInStack.endsWith(":")) errorNameInStack = errorNameInStack.slice(0, -1);
+              str = errorName + str.slice(errorNameInStack.length);
+            }
+            let stackPrefix = errorName + (value.message ? `: ${value.message}` : "");
+            // The rule of `Symbol.toStringTag` for `Error`s is different from other
+            // objects, so we should handle it here.
+            const toStringTag = getToStringTag(value, showHidden);
+            if (toStringTag) {
+              // Escape special characters in the class name
+              // Copied from: https://stackoverflow.com/a/3561711/21418758
+              const errorNameRegEx = new RegExp(
+                `^${errorName.replace(/[/\-\\^$*+?.()|[\]{}]/, "\\$&")}(?=:|$|\n)`,
+                "m",
+              );
+              str = str.replace(errorNameRegEx, `${errorName} [${toStringTag}]`);
+              stackPrefix = stackPrefix.replace(errorNameRegEx, `${errorName} [${toStringTag}]`);
+            }
+            const stack = formatErrorStack(str, stackPrefix);
+            if (!stack || !stack.includes("\n")) {
+              prefix = text(stack || `[${str}]`);
+            } else {
+              prefix = variant(
+                text(stack),
+                between(
+                  stack
+                    .split("\n")
+                    .map((line, i) =>
+                      // De-indent 4-space padding to 2-space padding so `between` nodes can format
+                      // the stack back to 4-space padding
+                      i !== 0 && line.startsWith("    at") ? line.slice(2) : line,
+                    )
+                    .map(text),
+                ),
+              );
+            }
+          } else {
+            const toStringTag = getToStringTag(value, showHidden);
+            const classNameWithTag = className + (toStringTag ? ` [${toStringTag}]` : "");
+            prefix = text(
+              value.message ? `[${classNameWithTag}: ${value.message}]` : `[${classNameWithTag}]`,
+            );
+          }
+          removeEmptyBody = true;
+        }
+
+        // Module
+        else if (isESModule(value)) {
           prefix = text(
-            value.message ? `[${classNameWithTag}: ${value.message}]` : `[${classNameWithTag}]`,
+            `[Module${Object.getPrototypeOf(value) === null ? ": null prototype" : ""}]`,
           );
         }
-        removeEmptyBody = true;
-      }
 
-      // Module
-      else if (isESModule(value)) {
-        prefix = text(`[Module${Object.getPrototypeOf(value) === null ? ": null prototype" : ""}]`);
-      }
-
-      // null prototype
-      else if (Object.getPrototypeOf(value) === null) {
-        prefix = text("[Object: null prototype]");
-      }
-
-      // Callable (function / ES6 class)
-      else if (typeof value === "function") {
-        let str: string;
-        // ES6 class
-        if (isES6Class(value)) {
-          const proto: unknown = Object.getPrototypeOf(value);
-          // The rule of `Symbol.toStringTag` for classes is different from other objects,
-          // so we should handle it here.
-          const toStringTag = getToStringTag(value, showHidden);
-          str =
-            // Show class name if available, or `(anonymous)` otherwise
-            `[class ${value.name || "(anonymous)"}` +
-            // Show `Symbol.toStringTag` right after the class name
-            (toStringTag ? ` [${toStringTag}]` : "") +
-            // Show superclass name if it is available
-            (typeof proto === "function" && proto.name ? ` extends ${proto.name}` : "") +
-            "]";
+        // null prototype
+        else if (Object.getPrototypeOf(value) === null) {
+          prefix = text("[Object: null prototype]");
         }
-        // Other callable objects (functions)
-        else {
-          // The type of the function (`Function`, `GeneratorFunction`, `AsyncFunction`, etc.)
-          const type =
-            generatorFunctionRegExp.test(Function.prototype.toString.call(value)) ?
-              "GeneratorFunction"
-            : asyncFunctionRegExp.test(Function.prototype.toString.call(value)) ? "AsyncFunction"
-            : asyncGeneratorFunctionRegExp.test(Function.prototype.toString.call(value)) ?
-              "AsyncGeneratorFunction"
-            : "Function";
-          // Show function name as `: ${name}` if available, or `(anonymous)` otherwise
-          str = value.name ? `[${type}: ${value.name}]` : `[${type} (anonymous)]`;
-          // Add trailing class name if it is not the same as the type
-          if (className !== type) str += ` ${className}`;
+
+        // Callable (function / ES6 class)
+        else if (typeof value === "function") {
+          let str: string;
+          // ES6 class
+          if (isES6Class(value)) {
+            const proto: unknown = Object.getPrototypeOf(value);
+            // The rule of `Symbol.toStringTag` for classes is different from other objects,
+            // so we should handle it here.
+            const toStringTag = getToStringTag(value, showHidden);
+            str =
+              // Show class name if available, or `(anonymous)` otherwise
+              `[class ${value.name || "(anonymous)"}` +
+              // Show `Symbol.toStringTag` right after the class name
+              (toStringTag ? ` [${toStringTag}]` : "") +
+              // Show superclass name if it is available
+              (typeof proto === "function" && proto.name ? ` extends ${proto.name}` : "") +
+              "]";
+          }
+          // Other callable objects (functions)
+          else {
+            // The type of the function (`Function`, `GeneratorFunction`, `AsyncFunction`, etc.)
+            const type =
+              generatorFunctionRegExp.test(Function.prototype.toString.call(value)) ?
+                "GeneratorFunction"
+              : asyncFunctionRegExp.test(Function.prototype.toString.call(value)) ? "AsyncFunction"
+              : asyncGeneratorFunctionRegExp.test(Function.prototype.toString.call(value)) ?
+                "AsyncGeneratorFunction"
+              : "Function";
+            // Show function name as `: ${name}` if available, or `(anonymous)` otherwise
+            str = value.name ? `[${type}: ${value.name}]` : `[${type} (anonymous)]`;
+            // Add trailing class name if it is not the same as the type
+            if (className !== type) str += ` ${className}`;
+          }
+          prefix = text(str);
+          removeEmptyBody = true;
         }
-        prefix = text(str);
-        removeEmptyBody = true;
-      }
 
-      // Array / typed array
-      else if (
-        // is `Array`
-        Array.isArray(value) ||
-        // is typed array
-        (ArrayBuffer.isView(value) && !(value instanceof DataView))
-      ) {
-        // Set style to `Array` to use `[...]` instead of `{...}` for the body
-        bodyStyle = "Array";
-        // Show class name with length if the class name is not `Array`
-        if (className !== "Array" && "length" in value && typeof value.length === "number")
-          prefix = text(`${className}(${value.length})`);
-      }
-
-      // Wrapper objects for primitives
-      else if ((tmp = getWrapperClass(value))) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-        const type = (tmp as Function).name;
-        const openStr = `[${type}` + (className !== type ? ` (${className})` : "") + ": ";
-        // For strings, it might be a long multiline string that should be broken into lines,
-        // so we should expand the value here
-        if (type === "String") {
-          const data = (value as unknown as { valueOf(): string }).valueOf();
-          // A wrapped string has positive integer keys from 0 to `length - 1`,
-          // e.g., `new String("foo")` has keys `0`, `1`, `2`.
-          // We should omit them here to avoid showing them in the output.
-          for (let i = 0; i < data.length; i++) omittedKeys.add("" + i);
-          prefix = sequence([text(openStr), expand(data, { depth: Infinity }), text("]")]);
+        // Array / typed array
+        else if (
+          // is `Array`
+          Array.isArray(value) ||
+          // is typed array
+          (ArrayBuffer.isView(value) && !(value instanceof DataView))
+        ) {
+          // Set style to `Array` to use `[...]` instead of `{...}` for the body
+          bodyStyle = "Array";
+          // Show class name with length if the class name is not `Array`
+          if (className !== "Array" && "length" in value && typeof value.length === "number")
+            prefix = text(`${className}(${value.length})`);
         }
-        // For other types, just use `toString` to get the value
-        else {
-          prefix = text(
-            openStr +
-              (type === "Number" || type === "BigInt" ?
-                stringifyNumber(value.valueOf() as number | bigint, numericSeparator)
-                // eslint-disable-next-line @typescript-eslint/no-base-to-string
-              : value.toString()) +
-              "]",
-          );
+
+        // Wrapper objects for primitives
+        else if ((tmp = getWrapperClass(value))) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+          const type = (tmp as Function).name;
+          const openStr = `[${type}` + (className !== type ? ` (${className})` : "") + ": ";
+          // For strings, it might be a long multiline string that should be broken into lines,
+          // so we should expand the value here
+          if (type === "String") {
+            const data = (value as unknown as { valueOf(): string }).valueOf();
+            // A wrapped string has positive integer keys from 0 to `length - 1`,
+            // e.g., `new String("foo")` has keys `0`, `1`, `2`.
+            // We should omit them here to avoid showing them in the output.
+            for (let i = 0; i < data.length; i++) omittedKeys.add("" + i);
+            // Do not check canExpandDeeper here because it is an in-place expansion
+            prefix = sequence([text(openStr), expand(data, { depth: Infinity }), text("]")]);
+          }
+          // For other types, just use `toString` to get the value
+          else {
+            prefix = text(
+              openStr +
+                (type === "Number" || type === "BigInt" ?
+                  stringifyNumber(value.valueOf() as number | bigint, numericSeparator)
+                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                : value.toString()) +
+                "]",
+            );
+          }
+          removeEmptyBody = true;
         }
-        removeEmptyBody = true;
-      }
 
-      /* Build base entries */
-      const formatKey = (key: string | symbol): string =>
-        typeof key === "symbol" ? key.toString()
-          // Always quote keys if `quoteKeys` is set to `"always"`
-        : quoteKeys === "always" ? stringifyString(key, quoteStyle)
-          // For string keys that are valid identifiers, we should show them as is
-        : /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? key
-          // For other string keys, we should wrap them with quotes
-        : stringifyString(key, quoteStyle);
+        /* Build base entries */
+        const formatKey = (key: string | symbol): string =>
+          typeof key === "symbol" ? key.toString()
+            // Always quote keys if `quoteKeys` is set to `"always"`
+          : quoteKeys === "always" ? stringifyString(key, quoteStyle)
+            // For string keys that are valid identifiers, we should show them as is
+          : /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? key
+            // For other string keys, we should wrap them with quotes
+          : stringifyString(key, quoteStyle);
 
-      const allKeys = Reflect.ownKeys(value).filter((key) => !omittedKeys.has(key));
-      const arrayItemKeys: (string | number)[] = []; // `number` used to mark empty slots here
-      let hiddenArrayItemsCount = 0;
-      const otherKeys = [];
-      let firstArrayIndex = -1;
-      for (let i = 0; i < allKeys.length; i++) {
-        const key = allKeys[i]!;
+        const allKeys = Reflect.ownKeys(value).filter((key) => !omittedKeys.has(key));
+        const arrayItemKeys: (string | number)[] = []; // `number` used to mark empty slots here
+        let hiddenArrayItemsCount = 0;
+        const otherKeys = [];
+        let firstArrayIndex = -1;
+        for (let i = 0; i < allKeys.length; i++) {
+          const key = allKeys[i]!;
 
-        if (bodyStyle === "Array" && isPositiveIntegerKey(key)) {
-          if (arrayItemKeys.length === maxArrayLength) {
-            hiddenArrayItemsCount++;
+          if (bodyStyle === "Array" && isPositiveIntegerKey(key)) {
+            if (arrayItemKeys.length === maxArrayLength) {
+              hiddenArrayItemsCount++;
+              continue;
+            }
+
+            arrayItemKeys.push(key);
+
+            // Add empty item markers for sparse arrays
+            if (Array.isArray(value)) {
+              const index = Number(key);
+              if (firstArrayIndex === -1) firstArrayIndex = index;
+              let j = i + 1;
+              for (; j < allKeys.length; j++) if (isPositiveIntegerKey(allKeys[j]!)) break;
+              const nextIndex = Number(allKeys[j] || value.length || "");
+              if (nextIndex !== index + 1) arrayItemKeys.push(nextIndex - index - 1);
+            }
+
             continue;
           }
 
-          arrayItemKeys.push(key);
+          // Hide non-enumerable keys when `showHidden` is `"none"`
+          if (
+            (showHidden !== "none" && showHidden !== false) ||
+            (!(value instanceof Error && key === "name") && // `name` is already used as error prefix
+              Object.getOwnPropertyDescriptor(value, key)!.enumerable)
+          )
+            otherKeys.push(key);
+        }
+        // Handle prefix empty slots
+        if (
+          Array.isArray(value) &&
+          (firstArrayIndex = firstArrayIndex === -1 ? value.length : firstArrayIndex)
+        )
+          arrayItemKeys.unshift(firstArrayIndex);
+        const ensurePreservedKeys = [
+          // Error.cause
+          value instanceof Error && "cause",
+          // AggregateError.errors
+          // @ts-expect-error - AggregateError is only available in ES2021+
+          typeof AggregateError !== "undefined" &&
+            // @ts-expect-error - AggregateError is only available in ES2021+
+            value instanceof AggregateError &&
+            "errors",
+        ].filter((k) => k) as string[];
+        for (const key of ensurePreservedKeys)
+          if (allKeys.indexOf(key) !== -1 && otherKeys.indexOf(key) === -1) otherKeys.push(key);
 
-          // Add empty item markers for sparse arrays
-          if (Array.isArray(value)) {
-            const index = Number(key);
-            if (firstArrayIndex === -1) firstArrayIndex = index;
-            let j = i + 1;
-            for (; j < allKeys.length; j++) if (isPositiveIntegerKey(allKeys[j]!)) break;
-            const nextIndex = Number(allKeys[j] || value.length || "");
-            if (nextIndex !== index + 1) arrayItemKeys.push(nextIndex - index - 1);
+        // Array element
+        if (arrayItemKeys.length && !canExpandDeeper) break abort;
+        const arrayEntries: Node[] = arrayItemKeys.map((key) =>
+          typeof key === "number" ?
+            text(`<${key} empty item${key === 1 ? "" : "s"}>`)
+          : expand(value[key as keyof typeof value]),
+        );
+        if (hiddenArrayItemsCount)
+          arrayEntries.push(
+            text(`... ${hiddenArrayItemsCount} more item${hiddenArrayItemsCount === 1 ? "" : "s"}`),
+          );
+
+        // Object key/value pair
+        const objectEntries: (
+          | Extract<Node, { type: "text" }>
+          | (Extract<Node, { type: "sequence" }> & {
+              values: [Extract<Node, { type: "text" }>, ...Node[]];
+            })
+        )[] = [];
+        for (const key of otherKeys) {
+          const desc = Object.getOwnPropertyDescriptor(value, key)!;
+
+          let keyDisplay = formatKey(key);
+          // Add `[]` around non-enumerable string keys
+          if (typeof key === "string" && !desc.enumerable) keyDisplay = `[${keyDisplay}]`;
+
+          // Expand the value
+          const propType =
+            desc.get && desc.set ? "Getter/Setter"
+            : desc.get ? "Getter"
+            : desc.set ? "Setter"
+            : "";
+          // Just show the value if it is not a getter/setter
+          if (!propType) {
+            if (!canExpandDeeper) break abort;
+            objectEntries.push(
+              pair(text(`${keyDisplay}: `), expand(value[key as keyof typeof value])),
+            );
+            continue;
           }
 
-          continue;
+          const shouldExpand =
+            ((getters === "all" || getters === true) && !!desc.get) ||
+            (getters === "get" && desc.get && !desc.set) ||
+            (getters === "set" && desc.get && !!desc.set);
+
+          if (!shouldExpand) {
+            objectEntries.push(text(`${keyDisplay}: [${propType}]`));
+            continue;
+          }
+
+          // Getters may throw errors, so we should wrap it in a try-catch block
+          let val: unknown;
+          let errorMessage: string | undefined;
+          try {
+            val = value[key as keyof typeof value];
+          } catch (err) {
+            errorMessage = err == null ? String(err) : String((err as any).message);
+          }
+
+          // Show errors as `foo: [Getter: <Inspection threw (error message)>]`
+          if (errorMessage !== undefined) {
+            objectEntries.push(
+              text(`${keyDisplay}: [${propType}: <Inspection threw (${errorMessage})>]`),
+            );
+            continue;
+          }
+
+          // Show objects as `foo: [Getter/Setter] { bar: "baz" }`
+          if (isObject(val)) {
+            if (!canExpandDeeper) break abort;
+            objectEntries.push(pair(text(`${keyDisplay}: [${propType}] `), expand(val)));
+            continue;
+          }
+
+          // Show primitives as `foo: [Getter: "hello"]`
+          if (!canExpandDeeper) break abort;
+          objectEntries.push(
+            sequence([text(`${keyDisplay}: [${propType}: `), expand(val), text("]")]),
+          );
+        }
+        if (sorted)
+          // Sort object keys if `sorted` is `true`
+          objectEntries.sort((a, b) => {
+            const aStr = a.type === "text" ? a.value : a.values[0].value;
+            const bStr = b.type === "text" ? b.value : b.values[0].value;
+            return (
+              aStr < bStr ? -1
+              : aStr > bStr ? 1
+              : 0
+            );
+          });
+
+        /* Refine entries */
+        // Promise
+        if (value instanceof Promise) {
+          extraEntries.push(text("<state unknown>"));
         }
 
-        // Hide non-enumerable keys when `showHidden` is `"none"`
+        // Map
+        else if (value instanceof Map) {
+          prefix = text(`Map(${value.size})`);
+          const mapEntries = Array.from(value.entries());
+          if (sorted)
+            // Sort map entries if `sorted` is `true`
+            mapEntries.sort((a, b) => {
+              const aStr = String(
+                typeof a[0] === "string" ? stringifyString(a[0], quoteStyle) : a[0],
+              );
+              const bStr = String(
+                typeof b[0] === "string" ? stringifyString(b[0], quoteStyle) : b[0],
+              );
+              return (
+                aStr < bStr ? -1
+                : aStr > bStr ? 1
+                : 0
+              );
+            });
+          if (mapEntries.length && !canExpandDeeper) break abort;
+          for (const [key, val] of mapEntries)
+            (objectEntries as Node[]).push(sequence([expand(key), text(" => "), expand(val)]));
+        }
+
+        // Set
+        else if (value instanceof Set) {
+          prefix = text(`Set(${value.size})`);
+          const setItems = Array.from(value);
+          if (sorted)
+            // Sort set items if `sorted` is `true`
+            setItems.sort((a, b) => {
+              const aStr = String(typeof a === "string" ? stringifyString(a, quoteStyle) : a);
+              const bStr = String(typeof b === "string" ? stringifyString(b, quoteStyle) : b);
+              return (
+                aStr < bStr ? -1
+                : aStr > bStr ? 1
+                : 0
+              );
+            });
+          if (setItems.length && !canExpandDeeper) break abort;
+          for (const val of setItems) (objectEntries as Node[]).push(expand(val));
+        }
+
+        // WeakMap and WeakSet
+        else if (value instanceof WeakMap || value instanceof WeakSet) {
+          extraEntries.push(text("<items unknown>"));
+        }
+
+        /* Build body */
+        const entries = arrayEntries;
+        Array.prototype.push.apply(entries, extraEntries);
+        Array.prototype.push.apply(entries, objectEntries);
+
+        // Wrap `[]` for array-style objects, and `{}` for others
+        const [open, close] = bodyStyle === "Array" ? ["[", "]"] : ["{", "}"];
+        const braceSpacing = bodyStyle === "Array" ? arrayBracketSpacing : objectCurlySpacing;
+        const body =
+          entries.length === 0 ?
+            text(bodyStyle === "Array" ? "[]" : "{}")
+          : variant(
+              between(
+                // Add comma separator for entries
+                entries.map((node, i, arr) =>
+                  i !== arr.length - 1 ? pair(node, text(", "))
+                  : trailingComma === "always" ? pair(node, text(","))
+                  : node,
+                ),
+                text(open + (braceSpacing ? " " : "")),
+                text((braceSpacing ? " " : "") + close),
+              ),
+              between(
+                // Add comma separator for entries
+                entries.map((node, i, arr) =>
+                  trailingComma !== "none" || i !== arr.length - 1 ? pair(node, text(",")) : node,
+                ),
+                text(open),
+                text(close),
+              ),
+            );
+
+        // Add `Symbol.toStringTag`
         if (
-          (showHidden !== "none" && showHidden !== false) ||
-          (!(value instanceof Error && key === "name") && // `name` is already used as error prefix
-            Object.getOwnPropertyDescriptor(value, key)!.enumerable)
+          !(value instanceof Date) &&
+          !(value instanceof RegExp) &&
+          !(value instanceof Error) &&
+          !isES6Class(value)
+        ) {
+          // `Date`s, `RegExp`s and ES6 classes are handled in the prefix,
+          // so we only need to handle the rest here.
+          const toStringTag = getToStringTag(value, showHidden);
+          if (toStringTag && (!isESModule(value) || toStringTag !== "Module")) {
+            if (!prefix) prefix = text(`${className} [${toStringTag}]`);
+            else if (prefix.type === "text")
+              prefix = Object.assign({}, prefix, { value: `${prefix.value} [${toStringTag}]` });
+            else prefix = pair(prefix, text(` [${toStringTag}]`));
+          }
+        }
+
+        // Add class name
+        if (
+          !prefix &&
+          className &&
+          className !== "Object" &&
+          !(bodyStyle === "Array" && Array.isArray(value))
         )
-          otherKeys.push(key);
-      }
-      // Handle prefix empty slots
-      if (
-        Array.isArray(value) &&
-        (firstArrayIndex = firstArrayIndex === -1 ? value.length : firstArrayIndex)
-      )
-        arrayItemKeys.unshift(firstArrayIndex);
-      const ensurePreservedKeys = [
-        // Error.cause
-        value instanceof Error && "cause",
-        // AggregateError.errors
-        // @ts-expect-error - AggregateError is only available in ES2021+
-        typeof AggregateError !== "undefined" &&
-          // @ts-expect-error - AggregateError is only available in ES2021+
-          value instanceof AggregateError &&
-          "errors",
-      ].filter((k) => k) as string[];
-      for (const key of ensurePreservedKeys)
-        if (allKeys.indexOf(key) !== -1 && otherKeys.indexOf(key) === -1) otherKeys.push(key);
+          prefix = text(className);
 
-      // Array element
-      const arrayEntries: Node[] = arrayItemKeys.map((key) =>
-        typeof key === "number" ?
-          text(`<${key} empty item${key === 1 ? "" : "s"}>`)
-        : expand(value[key as keyof typeof value]),
-      );
-      if (hiddenArrayItemsCount)
-        arrayEntries.push(
-          text(`... ${hiddenArrayItemsCount} more item${hiddenArrayItemsCount === 1 ? "" : "s"}`),
-        );
+        // Remove empty body (`[]` for array-style objects, `{}` for others) if necessary
+        const result =
+          prefix ?
+            body.type === "text" && removeEmptyBody ?
+              prefix
+            : sequence([prefix, text(" "), body])
+          : body;
 
-      // Object key/value pair
-      const objectEntries = otherKeys.map((key) => {
-        const desc = Object.getOwnPropertyDescriptor(value, key)!;
-
-        let keyDisplay = formatKey(key);
-        // Add `[]` around non-enumerable string keys
-        if (typeof key === "string" && !desc.enumerable) keyDisplay = `[${keyDisplay}]`;
-
-        // Expand the value
-        const propType =
-          desc.get && desc.set ? "Getter/Setter"
-          : desc.get ? "Getter"
-          : desc.set ? "Setter"
-          : "";
-        // Just show the value if it is not a getter/setter
-        if (!propType)
-          return pair(text(`${keyDisplay}: `), expand(value[key as keyof typeof value]));
-
-        const shouldExpand =
-          ((getters === "all" || getters === true) && !!desc.get) ||
-          (getters === "get" && desc.get && !desc.set) ||
-          (getters === "set" && desc.get && !!desc.set);
-
-        if (!shouldExpand) return text(`${keyDisplay}: [${propType}]`);
-
-        // Getters may throw errors, so we should wrap it in a try-catch block
-        let val: unknown;
-        let errorMessage: string | undefined;
-        try {
-          val = value[key as keyof typeof value];
-        } catch (err) {
-          errorMessage = err == null ? String(err) : String((err as any).message);
-        }
-
-        // Show errors as `foo: [Getter: <Inspection threw (error message)>]`
-        if (errorMessage !== undefined)
-          return text(`${keyDisplay}: [${propType}: <Inspection threw (${errorMessage})>]`);
-
-        // Show objects as `foo: [Getter/Setter] { bar: "baz" }`
-        if (isObject(val)) return pair(text(`${keyDisplay}: [${propType}] `), expand(val));
-
-        // Show primitives as `foo: [Getter: "hello"]`
-        return sequence([text(`${keyDisplay}: [${propType}: `), expand(val), text("]")]);
-      });
-      if (sorted)
-        // Sort object keys if `sorted` is `true`
-        objectEntries.sort((a, b) => {
-          const aStr = a.type === "text" ? a.value : a.values[0].value;
-          const bStr = b.type === "text" ? b.value : b.values[0].value;
-          return (
-            aStr < bStr ? -1
-            : aStr > bStr ? 1
-            : 0
-          );
-        });
-
-      /* Refine entries */
-      // Promise
-      if (value instanceof Promise) {
-        extraEntries.push(text("<state unknown>"));
-      }
-
-      // Map
-      else if (value instanceof Map) {
-        prefix = text(`Map(${value.size})`);
-        const mapEntries = Array.from(value.entries());
-        if (sorted)
-          // Sort map entries if `sorted` is `true`
-          mapEntries.sort((a, b) => {
-            const aStr = String(
-              typeof a[0] === "string" ? stringifyString(a[0], quoteStyle) : a[0],
-            );
-            const bStr = String(
-              typeof b[0] === "string" ? stringifyString(b[0], quoteStyle) : b[0],
-            );
-            return (
-              aStr < bStr ? -1
-              : aStr > bStr ? 1
-              : 0
-            );
-          });
-        for (const [key, val] of mapEntries)
-          (objectEntries as Node[]).push(sequence([expand(key), text(" => "), expand(val)]));
-      }
-
-      // Set
-      else if (value instanceof Set) {
-        prefix = text(`Set(${value.size})`);
-        const setItems = Array.from(value);
-        if (sorted)
-          // Sort set items if `sorted` is `true`
-          setItems.sort((a, b) => {
-            const aStr = String(typeof a === "string" ? stringifyString(a, quoteStyle) : a);
-            const bStr = String(typeof b === "string" ? stringifyString(b, quoteStyle) : b);
-            return (
-              aStr < bStr ? -1
-              : aStr > bStr ? 1
-              : 0
-            );
-          });
-        for (const val of setItems) (objectEntries as Node[]).push(expand(val));
-      }
-
-      // WeakMap and WeakSet
-      else if (value instanceof WeakMap || value instanceof WeakSet) {
-        extraEntries.push(text("<items unknown>"));
-      }
-
-      /* Build body */
-      const entries = arrayEntries;
-      Array.prototype.push.apply(entries, extraEntries);
-      Array.prototype.push.apply(entries, objectEntries);
-
-      // Wrap `[]` for array-style objects, and `{}` for others
-      const [open, close] = bodyStyle === "Array" ? ["[", "]"] : ["{", "}"];
-      const braceSpacing = bodyStyle === "Array" ? arrayBracketSpacing : objectCurlySpacing;
-      const body =
-        entries.length === 0 ?
-          text(bodyStyle === "Array" ? "[]" : "{}")
-        : variant(
-            between(
-              // Add comma separator for entries
-              entries.map((node, i, arr) =>
-                i !== arr.length - 1 ? pair(node, text(", "))
-                : trailingComma === "always" ? pair(node, text(","))
-                : node,
-              ),
-              text(open + (braceSpacing ? " " : "")),
-              text((braceSpacing ? " " : "") + close),
-            ),
-            between(
-              // Add comma separator for entries
-              entries.map((node, i, arr) =>
-                trailingComma !== "none" || i !== arr.length - 1 ? pair(node, text(",")) : node,
-              ),
-              text(open),
-              text(close),
-            ),
-          );
-
-      // Add `Symbol.toStringTag`
-      if (
-        !(value instanceof Date) &&
-        !(value instanceof RegExp) &&
-        !(value instanceof Error) &&
-        !isES6Class(value)
-      ) {
-        // `Date`s, `RegExp`s and ES6 classes are handled in the prefix,
-        // so we only need to handle the rest here.
-        const toStringTag = getToStringTag(value, showHidden);
-        if (toStringTag && (!isESModule(value) || toStringTag !== "Module")) {
-          if (!prefix) prefix = text(`${className} [${toStringTag}]`);
-          else if (prefix.type === "text")
-            prefix = Object.assign({}, prefix, { value: `${prefix.value} [${toStringTag}]` });
-          else prefix = pair(prefix, text(` [${toStringTag}]`));
-        }
-      }
-
-      // Add class name
-      if (
-        !prefix &&
-        className &&
-        className !== "Object" &&
-        !(bodyStyle === "Array" && Array.isArray(value))
-      )
-        prefix = text(className);
-
-      // Remove empty body (`[]` for array-style objects, `{}` for others) if necessary
-      const result =
-        prefix ?
-          body.type === "text" && removeEmptyBody ?
-            prefix
-          : sequence([prefix, text(" "), body])
-        : body;
-
-      // Add reference pointer to help identify circular structures
-      return Object.assign({}, result, { ref: value });
-    } catch (err) {
-      if (err instanceof MaximumDepthError)
-        return text(
-          `[${className}${Object.getPrototypeOf(value) === null ? ": null prototype" : ""}]`,
-        );
-      throw err;
+        // Add reference pointer to help identify circular structures
+        return Object.assign({}, result, { ref: value });
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
+      } while (false);
+    } catch (e) {
+      if (!(e instanceof MaximumDepthError)) throw e;
     }
+    return text(`[${className}${Object.getPrototypeOf(value) === null ? ": null prototype" : ""}]`);
   }
 
   // This should never happen, but for future compatibility,
