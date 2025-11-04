@@ -1,6 +1,6 @@
 {
   "name": "showify",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "description": "Arguably the most comprehensive library for stringifying any JavaScript value into a human-readable format, handling nearly every scenario you might encounter.",
   "keywords": [
