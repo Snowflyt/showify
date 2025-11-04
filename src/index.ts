@@ -804,7 +804,7 @@ function buildTree(
           CustomInspectSymbol
         ](options, expand);
         options = originalOptions;
-        return node;
+        return Object.assign(node, { ref: value });
       }
       if (
         callNodeInspect &&
@@ -821,8 +821,8 @@ function buildTree(
             return options ? show(value, convertToShowOptions(options)) : show(value);
           },
         );
-        if (typeof result === "string") return text(result);
-        return buildTree(result, options);
+        if (typeof result === "string") return Object.assign(text(result), { ref: value });
+        return Object.assign(buildTree(result, options), { ref: value });
       }
       if (
         callToJSON &&
@@ -830,7 +830,9 @@ function buildTree(
         !(value instanceof Date) &&
         typeof (value as { toJSON?: unknown }).toJSON === "function"
       )
-        return buildTree((value as { toJSON: () => unknown }).toJSON(), options);
+        return Object.assign(buildTree((value as { toJSON: () => unknown }).toJSON(), options), {
+          ref: value,
+        });
 
       // eslint-disable-next-line sonarjs/no-labels
       abort: do {
