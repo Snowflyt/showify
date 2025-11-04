@@ -727,11 +727,11 @@ function buildTree(
       (options as any)[k] = (opts as any)[k];
     }
 
-    // level and ancestors are always adjusted for nested expansion
+    // level and ancestors are automatically adjusted for nested expansion
     prev.level = options.level;
-    options.level++;
+    options.level = opts.level !== undefined ? opts.level : options.level + 1;
     prev.ancestors = options.ancestors;
-    options.ancestors = ancestors.concat([value]);
+    options.ancestors = opts.ancestors ? opts.ancestors : ancestors.concat([value]);
 
     // Rebuild colorizer if colors or styles changed
     prev.c = options.c;

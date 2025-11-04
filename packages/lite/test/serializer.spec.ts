@@ -141,4 +141,33 @@ describe("Serializer", () => {
 
     expect(show(nested, { serializers: [ser], depth: 1 })).toEqual("Depth(Depth(Depth({ x: 1 })))");
   });
+
+  it("should respect provided expand options in custom serializer", () => {
+    const ser = serializer({
+      if: (value, { omittedKeys }): value is { _tag: string } =>
+        "_tag" in value &&
+        typeof value._tag === "string" &&
+        // Detect if `_tag` is already omitted to avoid infinite recursion
+        !omittedKeys.has("_tag"),
+      then: (value, { ancestors, level }, expand) =>
+        sequence([
+          text(value._tag),
+          text("("),
+          expand(value, {
+            // Reset `level` to avoid auto incrementing
+            level,
+            // Omit the `_tag` key when expanding the object
+            omittedKeys: new Set(["_tag"]),
+            // Avoid auto-adding current value to `ancestors` to avoid circulars
+            ancestors: [...ancestors],
+          }),
+          text(")"),
+        ]),
+    });
+
+    const obj = { _tag: "Some", value: 42, nested: { foo: { bar: { baz: "qux" } } } };
+    expect(show(obj, { serializers: [ser], depth: 2 })).toEqual(
+      "Some({ value: 42, nested: { foo: { bar: [Object] } } })",
+    );
+  });
 });

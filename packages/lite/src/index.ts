@@ -623,11 +623,11 @@ function buildTree(
       (options as any)[k] = (opts as any)[k];
     }
 
-    // level and ancestors are always adjusted for nested expansion
+    // level and ancestors are automatically adjusted for nested expansion
     prev.level = options.level;
-    options.level = options.level + 1;
+    options.level = opts.level !== undefined ? opts.level : options.level + 1;
     prev.ancestors = options.ancestors;
-    options.ancestors = ancestors.concat([value]);
+    options.ancestors = opts.ancestors ? opts.ancestors : ancestors.concat([value]);
 
     try {
       if (options.level > options.depth + 1) throw new MaximumDepthError();
