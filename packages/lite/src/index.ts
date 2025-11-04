@@ -671,7 +671,7 @@ function buildTree(
             maxArrayLength,
             maxStringLength,
             serializers,
-            level: options.level + 1,
+            level: options.level,
             ancestors,
           } satisfies SerializerOptions;
           return Object.assign({}, serializer(value, newOptions, expand), { ref: value });

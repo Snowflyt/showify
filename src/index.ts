@@ -784,7 +784,7 @@ function buildTree(
             colors,
             styles: options.styles,
             serializers,
-            level: options.level + 1,
+            level: options.level,
             ancestors,
             c,
           } satisfies SerializerOptions;
