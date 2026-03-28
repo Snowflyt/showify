@@ -116,14 +116,15 @@ describe("Object", () => {
 
   it("should handle getter that throws error", () => {
     /* Throw non-nullable */
+    const error = new Error("error1");
     const obj1 = {
       get error1() {
-        throw new Error("Getter error");
+        throw error;
       },
 
       get error2() {
         // eslint-disable-next-line @typescript-eslint/only-throw-error
-        throw { message: "Getter/Setter error" };
+        throw { message: "error2" };
       },
       set error2(value: string) {
         // Do nothing
@@ -146,12 +147,41 @@ describe("Object", () => {
     };
 
     expect(show(obj1, { getters: "all" })).toEqual(
-      "{ error1: [Getter: <Inspection threw (Getter error)>], " +
-        "error2: [Getter/Setter: <Inspection threw (Getter/Setter error)>], " +
-        "error3: [Getter: <Inspection threw ()>], " +
-        "error4: [Getter: <Inspection threw (undefined)>], " +
-        "error5: [Getter: <Inspection threw (undefined)>] }",
+      `{ error1: [Getter: <Inspection threw (${show(error)})>], ` +
+        'error2: [Getter/Setter: <Inspection threw ({ message: "error2" })>], ' +
+        'error3: [Getter: <Inspection threw ({ message: "" })>], ' +
+        "error4: [Getter: <Inspection threw ({})>], " +
+        'error5: [Getter: <Inspection threw ("")>] }',
     );
+
+    expect(
+      inspect(
+        {
+          get error1() {
+            return obj1.error1;
+          },
+        },
+        { getters: "all" },
+      )
+        .split("\n")
+        .filter((_, i, a) => i <= 5 || i >= a.length - 5)
+        .join("\n"),
+    ).toEqual(
+      util
+        .inspect(
+          {
+            get error1() {
+              return obj1.error1;
+            },
+          },
+          { getters: true },
+        )
+        .split("\n")
+        .filter((_, i, a) => i <= 5 || i >= a.length - 5)
+        .join("\n"),
+    );
+
+    delete (obj1 as any).error1;
     expect(inspect(obj1, { getters: "all" })).toEqual(util.inspect(obj1, { getters: true }));
 
     /* Throw nullable */

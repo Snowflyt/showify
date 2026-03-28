@@ -1029,17 +1029,17 @@ function buildTree(
 
           // Getters may throw errors, so we should wrap it in a try-catch block
           let val: unknown;
-          let errorMessage: string | undefined;
           try {
             val = value[key as keyof typeof value];
-          } catch (err) {
-            errorMessage = err == null ? String(err) : String((err as any).message);
-          }
-
-          // Show errors as `foo: [Getter: <Inspection threw (error message)>]`
-          if (errorMessage !== undefined) {
+          } catch (e) {
+            // Show errors as `foo: [Getter: <Inspection threw (error)>]`
+            if (!canExpandDeeper) break abort;
             objectEntries.push(
-              text(`${keyDisplay}: [${propType}: <Inspection threw (${errorMessage})>]`),
+              sequence([
+                text(`${keyDisplay}: [${propType}: <Inspection threw (`),
+                expand(e),
+                text(")>]"),
+              ]),
             );
             continue;
           }
