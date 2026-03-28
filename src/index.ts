@@ -258,73 +258,84 @@ export function serializer(serializer: Serializer): Serializer {
  * // }
  * ```
  */
-export function show(value: unknown, options: ShowOptions = {}): string {
-  const refs = new Map<object, number>();
-  const getDefaultOptions = () =>
-    (show as unknown as { defaultOptions: RequiredShowOptions }).defaultOptions;
-  const defaultOptions = getDefaultOptions();
-  const fullOptions = Object.assign({}, defaultOptions, options, {
-    styles: Object.assign({}, defaultOptions.styles, options.styles),
-  });
-  const tree = buildTree(
-    value,
-    Object.assign({}, fullOptions, {
-      level: 0,
-      ancestors: [],
-      refs,
-      c: colorize.buildC(fullOptions.colors, fullOptions.styles),
-    }),
-  );
-  return stringify(
-    tree,
-    Object.assign({}, fullOptions, {
-      level: 0,
-      forceWrap: false,
-      restLineLength: fullOptions.breakLength,
-      refs,
-    }),
-  );
-}
+// @ts-expect-error - This export is defined later in the file, so TypeScript complains about duplicate exports
+export declare function show(value: unknown, options?: ShowOptions): string;
+// @ts-expect-error - This export is defined later in the file, so TypeScript complains about duplicate exports
+// eslint-disable-next-line import-x/export
 export declare namespace show {
   let defaultOptions: RequiredShowOptions;
 }
-Object.defineProperty(show, "defaultOptions", {
-  get: (): RequiredShowOptions => ({
-    callToJSON: false,
-    callNodeInspect: true,
-    callCustomInspect: true,
-    depth: Infinity,
-    indent: 0,
-    breakLength: 80,
-    showHidden: "none",
-    getters: "none",
-    sorted: false,
-    omittedKeys: new Set(),
-    quoteStyle: ["double", "single", "backtick"],
-    quoteKeys: "auto",
-    numericSeparator: "none",
-    trailingComma: "none",
-    arrayBracketSpacing: false,
-    objectCurlySpacing: true,
-    referencePointer: true,
-    maxArrayLength: Infinity,
-    maxStringLength: Infinity,
-    colors: false,
-    styles: {
-      string: "green",
-      symbol: "green",
-      number: "yellow",
-      bigint: "yellow",
-      boolean: "yellow",
-      null: "bold",
-      undefined: "gray",
-      date: "magenta",
-      regexp: highlightRegExp,
-      special: "cyan",
+/** @internal */
+// @ts-expect-error - This export is declared above, so TypeScript complains about duplicate exports
+// eslint-disable-next-line import-x/export
+export const show = /* @__PURE__ */ (() =>
+  Object.defineProperty(
+    function show(value: unknown, options: ShowOptions = {}): string {
+      const refs = new Map<object, number>();
+      const getDefaultOptions = () =>
+        (show as unknown as { defaultOptions: RequiredShowOptions }).defaultOptions;
+      const defaultOptions = getDefaultOptions();
+      const fullOptions = Object.assign({}, defaultOptions, options, {
+        styles: Object.assign({}, defaultOptions.styles, options.styles),
+      });
+      const tree = buildTree(
+        value,
+        Object.assign({}, fullOptions, {
+          level: 0,
+          ancestors: [],
+          refs,
+          c: colorize.buildC(fullOptions.colors, fullOptions.styles),
+        }),
+      );
+      return stringify(
+        tree,
+        Object.assign({}, fullOptions, {
+          level: 0,
+          forceWrap: false,
+          restLineLength: fullOptions.breakLength,
+          refs,
+        }),
+      );
     },
-    serializers: [],
-  }),
-});
+    "defaultOptions",
+    {
+      get: (): RequiredShowOptions => ({
+        callToJSON: false,
+        callNodeInspect: true,
+        callCustomInspect: true,
+        depth: Infinity,
+        indent: 0,
+        breakLength: 80,
+        showHidden: "none",
+        getters: "none",
+        sorted: false,
+        omittedKeys: new Set(),
+        quoteStyle: ["double", "single", "backtick"],
+        quoteKeys: "auto",
+        numericSeparator: "none",
+        trailingComma: "none",
+        arrayBracketSpacing: false,
+        objectCurlySpacing: true,
+        referencePointer: true,
+        maxArrayLength: Infinity,
+        maxStringLength: Infinity,
+        colors: false,
+        styles: {
+          string: "green",
+          symbol: "green",
+          number: "yellow",
+          bigint: "yellow",
+          boolean: "yellow",
+          null: "bold",
+          undefined: "gray",
+          date: "magenta",
+          regexp: highlightRegExp,
+          special: "cyan",
+        },
+        serializers: [],
+      }),
+    },
+  ))();
 
 /**
  * Stringify a tree structure of {@link Node}s into a string.
@@ -987,7 +998,8 @@ function buildTree(
                   Object.getPrototypeOf(prototype) === Object.prototype) ||
                 (type === "GeneratorFunction" &&
                   ownKeys.length === 0 &&
-                  Object.getPrototypeOf(prototype) === GeneratorFunction.prototype.prototype) ||
+                  Object.getPrototypeOf(prototype) ===
+                    function* () {}.constructor.prototype.prototype) ||
                 (type === "AsyncGeneratorFunction" &&
                   ownKeys.length === 0 &&
                   Object.getPrototypeOf(prototype) ===
@@ -1479,12 +1491,10 @@ function between<const Nodes extends Node[]>(
 /**********************
  * Internal utilities *
  **********************/
-const CustomInspectSymbol = Symbol.for("showify.inspect.custom");
+const CustomInspectSymbol = /* @__PURE__ */ Symbol.for("showify.inspect.custom");
 type CustomInspectSymbol = typeof CustomInspectSymbol;
-const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom");
+const NodeInspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
 type NodeInspectSymbol = typeof NodeInspectSymbol;
-
-const GeneratorFunction = /* #__PURE__ */ function* () {}.constructor;
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 let cachedAsyncGeneratorFunction: Function | undefined;
@@ -1590,26 +1600,24 @@ declare namespace colorize {
     styles: Styles,
   ): Record<Color | keyof Styles, (value: string | number | boolean | symbol) => string>;
 }
-Object.defineProperty(colorize, "colors", {
-  value: [
-    /* Modifiers */
-    "bold",
-    "dim",
-    "reset",
-    /* Colors */
-    "black",
-    "blue",
-    "cyan",
-    "gray",
-    "green",
-    "magenta",
-    "red",
-    "white",
-    "yellow",
-  ] satisfies typeof colorize.colors,
-});
-Object.defineProperty(colorize, "buildC", {
-  value: function buildC(colorEnabled: boolean, styles: Styles) {
+(colorize as { -readonly [K in keyof typeof colorize]: (typeof colorize)[K] }).colors = [
+  /* Modifiers */
+  "bold",
+  "dim",
+  "reset",
+  /* Colors */
+  "black",
+  "blue",
+  "cyan",
+  "gray",
+  "green",
+  "magenta",
+  "red",
+  "white",
+  "yellow",
+] satisfies typeof colorize.colors;
+(colorize as { -readonly [K in keyof typeof colorize]: (typeof colorize)[K] }).buildC =
+  function buildC(colorEnabled, styles) {
     const c = {} as ReturnType<typeof colorize.buildC>;
     if (colorEnabled) {
       for (const color of colorize.colors) c[color] = (value) => colorize(value.toString(), color);
@@ -1623,8 +1631,7 @@ Object.defineProperty(colorize, "buildC", {
         c[type as keyof typeof styles] = (value) => value.toString();
     }
     return c;
-  },
-});
+  };
 
 /**
  * Colorize a {@link Node}.

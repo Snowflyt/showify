@@ -200,50 +200,64 @@ export function serializer(serializer: Serializer): Serializer {
  * // }
  * ```
  */
-export function show(value: unknown, options: ShowOptions = {}): string {
-  const refs = new Map<object, number>();
-  const getDefaultOptions = () =>
-    (show as unknown as { defaultOptions: Required<ShowOptions> }).defaultOptions;
-  const defaultOptions = getDefaultOptions();
-  const fullOptions = Object.assign({}, defaultOptions, options);
-  const tree = buildTree(value, Object.assign({}, fullOptions, { level: 0, ancestors: [], refs }));
-  return stringify(
-    tree,
-    Object.assign({}, fullOptions, {
-      level: 0,
-      forceWrap: false,
-      restLineLength: fullOptions.breakLength,
-      refs,
-    }),
-  );
-}
+// @ts-expect-error - This export is defined later in the file, so TypeScript complains about duplicate exports
+export declare function show(value: unknown, options?: ShowOptions): string;
+// @ts-expect-error - This export is defined later in the file, so TypeScript complains about duplicate exports
+// eslint-disable-next-line import-x/export
 export declare namespace show {
   let defaultOptions: Required<ShowOptions>;
 }
-Object.defineProperty(show, "defaultOptions", {
-  get: (): Required<ShowOptions> => ({
-    callToJSON: false,
-    callNodeInspect: true,
-    callCustomInspect: true,
-    depth: Infinity,
-    indent: 0,
-    breakLength: 80,
-    showHidden: "none",
-    getters: "none",
-    sorted: false,
-    omittedKeys: new Set(),
-    quoteStyle: "double",
-    quoteKeys: "auto",
-    numericSeparator: "none",
-    trailingComma: "none",
-    arrayBracketSpacing: false,
-    objectCurlySpacing: true,
-    referencePointer: true,
-    maxArrayLength: Infinity,
-    maxStringLength: Infinity,
-    serializers: [],
-  }),
-});
+/** @internal */
+// @ts-expect-error - This export is declared above, so TypeScript complains about duplicate exports
+// eslint-disable-next-line import-x/export
+export const show = /* @__PURE__ */ (() =>
+  Object.defineProperty(
+    function show(value: unknown, options: ShowOptions = {}): string {
+      const refs = new Map<object, number>();
+      const getDefaultOptions = () =>
+        (show as unknown as { defaultOptions: Required<ShowOptions> }).defaultOptions;
+      const defaultOptions = getDefaultOptions();
+      const fullOptions = Object.assign({}, defaultOptions, options);
+      const tree = buildTree(
+        value,
+        Object.assign({}, fullOptions, { level: 0, ancestors: [], refs }),
+      );
+      return stringify(
+        tree,
+        Object.assign({}, fullOptions, {
+          level: 0,
+          forceWrap: false,
+          restLineLength: fullOptions.breakLength,
+          refs,
+        }),
+      );
+    },
+    "defaultOptions",
+    {
+      get: (): Required<ShowOptions> => ({
+        callToJSON: false,
+        callNodeInspect: true,
+        callCustomInspect: true,
+        depth: Infinity,
+        indent: 0,
+        breakLength: 80,
+        showHidden: "none",
+        getters: "none",
+        sorted: false,
+        omittedKeys: new Set(),
+        quoteStyle: "double",
+        quoteKeys: "auto",
+        numericSeparator: "none",
+        trailingComma: "none",
+        arrayBracketSpacing: false,
+        objectCurlySpacing: true,
+        referencePointer: true,
+        maxArrayLength: Infinity,
+        maxStringLength: Infinity,
+        serializers: [],
+      }),
+    },
+  ))();
 
 /**
  * Stringify a tree structure of {@link Node}s into a string.
@@ -1247,9 +1261,9 @@ function between<const Nodes extends Node[]>(
 /**********************
  * Internal utilities *
  **********************/
-const CustomInspectSymbol = Symbol.for("showify.inspect.custom");
+const CustomInspectSymbol = /* @__PURE__ */ Symbol.for("showify.inspect.custom");
 type CustomInspectSymbol = typeof CustomInspectSymbol;
-const NodeInspectSymbol = Symbol.for("nodejs.util.inspect.custom");
+const NodeInspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
 type NodeInspectSymbol = typeof NodeInspectSymbol;
 
 const generatorFunctionRegExp = /^\s*(?:function)?\*/;

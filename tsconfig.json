@@ -24,7 +24,8 @@
     "noUncheckedIndexedAccess": true,
 
     /* Type */
-    "declaration": true
+    "declaration": true,
+    "stripInternal": true
   },
   "include": ["src"],
   "exclude": ["src/**/*.spec.ts", "src/**/*.bench.ts"]
