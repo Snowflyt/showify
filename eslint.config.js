@@ -18,7 +18,9 @@ export default defineConfig(
   /** @type {import("eslint").Linter.Config} */ (importX.flatConfigs.recommended),
   /** @type {import("eslint").Linter.Config} */ (importX.flatConfigs.typescript),
   prettierRecommended,
-  sonarjs.configs.recommended,
+  /** @type {import("eslint").Linter.Config} */ (
+    /** @type {NonNullable<typeof sonarjs.configs>} */ (sonarjs.configs).recommended
+  ),
   {
     plugins: {
       "sort-destructure-keys": /** @type {import("eslint").ESLint.Plugin} */ (sortDestructureKeys),
@@ -28,13 +30,10 @@ export default defineConfig(
     },
     languageOptions: {
       parserOptions: {
-        project: [
-          "tsconfig.json",
-          "tsconfig.test.json",
-          "packages/*/tsconfig.json",
-          "packages/*/tsconfig.test.json",
-          "tsconfig.eslint.json",
-        ],
+        projectService: {
+          allowDefaultProject: ["*.{js,cjs}"],
+          defaultProject: "tsconfig.test.json",
+        },
         tsconfigRootDir: import.meta.dirname,
       },
       globals: { ...globals.browser },

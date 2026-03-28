@@ -1,9 +1,36 @@
 {
-  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "allowImportingTsExtensions": false,
+    "target": "ES2015",
+    "composite": true,
     "useDefineForClassFields": false,
-    "noEmit": false,
-    "outDir": "dist"
-  }
+    "lib": ["ES2015"],
+    "module": "ES2015",
+    "moduleDetection": "force",
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "isolatedModules": true,
+    "rootDir": "${configDir}/src",
+    "outDir": "${configDir}/dist",
+
+    /* Linting */
+    "strict": true,
+    "checkJs": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+
+    "stableTypeOrdering": true,
+
+    /* Type */
+    "declaration": true,
+    "stripInternal": true
+  },
+  "include": ["${configDir}/src/**/*"],
+  "exclude": ["${configDir}/src/**/*.spec.ts", "${configDir}/src/**/*.bench.ts"]
 }

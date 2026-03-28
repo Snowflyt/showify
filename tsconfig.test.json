@@ -1,10 +1,13 @@
 {
-  "extends": "./tsconfig.json",
+  "extends": "./tsconfig.build.json",
   "compilerOptions": {
+    "composite": true,
     "target": "ESNext",
     "lib": ["ESNext"],
-    "module": "ESNext"
+    "module": "ESNext",
+    "types": ["node"],
+    "rootDir": "${configDir}"
   },
-  "include": ["test", "bench"],
+  "include": ["${configDir}/src/**/*", "${configDir}/test/**/*", "${configDir}/bench/**/*"],
   "exclude": []
 }

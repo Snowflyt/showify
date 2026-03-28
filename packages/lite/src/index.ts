@@ -428,6 +428,7 @@ function stringify(
   /* Handle nodes end */
 
   // Add reference pointer if available
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (referencePointer && "ref" in node && node.ref) {
     const pointer = refs.get(node.ref);
     if (pointer) return `<ref *${pointer}>` + " " + result;
