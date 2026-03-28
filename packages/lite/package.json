@@ -22,7 +22,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Snowflyt/showify"
+    "url": "git+https://github.com/Snowflyt/showify.git",
+    "directory": "packages/lite"
   },
   "license": "MPL-2.0",
   "author": "Ge Gao (Snowflyt) <gaoge011022@gmail.com>",
