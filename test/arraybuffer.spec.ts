@@ -12,8 +12,7 @@ describe("ArrayBuffer", () => {
 
     expect(show(buffer)).toEqual("ArrayBuffer { [Uint8Contents]: <>, [byteLength]: 0 }");
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
   it("should show array buffer with single byte", () => {
@@ -22,8 +21,7 @@ describe("ArrayBuffer", () => {
 
     expect(show(buffer)).toEqual("ArrayBuffer { [Uint8Contents]: <ff>, [byteLength]: 1 }");
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
   it("should show array buffer with multiple bytes", () => {
@@ -36,8 +34,7 @@ describe("ArrayBuffer", () => {
 
     expect(show(buffer)).toEqual("ArrayBuffer { [Uint8Contents]: <12 34 56 78>, [byteLength]: 4 }");
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
   it("should show array buffer with `Symbol.toStringTag`", () => {
@@ -51,8 +48,7 @@ describe("ArrayBuffer", () => {
       "ArrayBuffer [MyTag] { [Uint8Contents]: <aa bb>, [byteLength]: 2 }",
     );
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
   it("should pad single digit hex values with zero", () => {
@@ -64,8 +60,7 @@ describe("ArrayBuffer", () => {
 
     expect(show(buffer)).toEqual("ArrayBuffer { [Uint8Contents]: <01 02 03>, [byteLength]: 3 }");
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 });
 
@@ -75,8 +70,7 @@ describe("SharedArrayBuffer", () => {
 
     expect(show(buffer)).toEqual("SharedArrayBuffer { [Uint8Contents]: <>, [byteLength]: 0 }");
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
   it("should show shared array buffer with single byte", () => {
@@ -85,8 +79,7 @@ describe("SharedArrayBuffer", () => {
 
     expect(show(buffer)).toEqual("SharedArrayBuffer { [Uint8Contents]: <ff>, [byteLength]: 1 }");
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
   it("should show shared array buffer with multiple bytes", () => {
@@ -101,8 +94,7 @@ describe("SharedArrayBuffer", () => {
       "SharedArrayBuffer { [Uint8Contents]: <12 34 56 78>, [byteLength]: 4 }",
     );
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
   it("should show shared array buffer with `Symbol.toStringTag`", () => {
@@ -116,8 +108,7 @@ describe("SharedArrayBuffer", () => {
       "SharedArrayBuffer [MyTag] { [Uint8Contents]: <aa bb>, [byteLength]: 2 }",
     );
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
   it("should pad single digit hex values with zero", () => {
@@ -131,8 +122,7 @@ describe("SharedArrayBuffer", () => {
       "SharedArrayBuffer { [Uint8Contents]: <01 02 03>, [byteLength]: 3 }",
     );
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
   it("should show [Uint8Contents] truncated when `maxArrayLength` is exceeded", () => {
@@ -146,8 +136,7 @@ describe("SharedArrayBuffer", () => {
     expect(inspect(buffer, { maxArrayLength: 5 })).toEqual(
       util.inspect(buffer, { maxArrayLength: 5 }),
     );
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
 
     buffer = new ArrayBuffer(10);
     view = new Uint8Array(buffer);
@@ -159,8 +148,7 @@ describe("SharedArrayBuffer", () => {
     expect(inspect(buffer, { maxArrayLength: 7 })).toEqual(
       util.inspect(buffer, { maxArrayLength: 7 }),
     );
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 
   it("should show detached array buffer", () => {
@@ -169,7 +157,6 @@ describe("SharedArrayBuffer", () => {
 
     expect(show(buffer)).toEqual("ArrayBuffer { (detached), [byteLength]: 0 }");
     expect(inspect(buffer)).toEqual(util.inspect(buffer));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
+    expect(inspect(buffer, { colors: true })).toEqual(util.inspect(buffer, { colors: true }));
   });
 });

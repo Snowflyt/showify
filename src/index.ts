@@ -1328,9 +1328,7 @@ function buildTree(
             if (i < buffer.length)
               contents += ` ... ${buffer.length - i} more byte${buffer.length - i === 1 ? "" : "s"}`;
             contents += ">";
-            extraEntries.push(
-              pair(text(c.special("[Uint8Contents]") + ": "), text(c.special(contents))),
-            );
+            extraEntries.push(pair(text(c.special("[Uint8Contents]") + ": "), text(contents)));
           }
           // byteLength
           pushExtraProperty("byteLength", (value as ArrayBuffer).byteLength);

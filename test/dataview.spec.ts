@@ -15,8 +15,7 @@ describe("DataView", () => {
       "DataView { [byteLength]: 0, [byteOffset]: 0, [buffer]: ArrayBuffer { [Uint8Contents]: <>, [byteLength]: 0 } }",
     );
     expect(inspect(view)).toEqual(util.inspect(view));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(view, { colors: true })).toEqual(util.inspect(view, { colors: true }));
+    expect(inspect(view, { colors: true })).toEqual(util.inspect(view, { colors: true }));
   });
 
   it("should show data view with offset", () => {
@@ -27,8 +26,7 @@ describe("DataView", () => {
       "DataView { [byteLength]: 2, [byteOffset]: 1, [buffer]: ArrayBuffer { [Uint8Contents]: <00 00 00 00>, [byteLength]: 4 } }",
     );
     expect(inspect(view)).toEqual(util.inspect(view));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(view, { colors: true })).toEqual(util.inspect(view, { colors: true }));
+    expect(inspect(view, { colors: true })).toEqual(util.inspect(view, { colors: true }));
   });
 
   it("should show data view with values", () => {
@@ -40,8 +38,7 @@ describe("DataView", () => {
       "DataView { [byteLength]: 4, [byteOffset]: 0, [buffer]: ArrayBuffer { [Uint8Contents]: <12 34 56 78>, [byteLength]: 4 } }",
     );
     expect(inspect(view)).toEqual(util.inspect(view));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(view, { colors: true })).toEqual(util.inspect(view, { colors: true }));
+    expect(inspect(view, { colors: true })).toEqual(util.inspect(view, { colors: true }));
   });
 
   it("should show data view with `Symbol.toStringTag`", () => {
@@ -54,7 +51,6 @@ describe("DataView", () => {
       "DataView [MyTag] { [byteLength]: 2, [byteOffset]: 0, [buffer]: ArrayBuffer { [Uint8Contents]: <ab cd>, [byteLength]: 2 } }",
     );
     expect(inspect(view)).toEqual(util.inspect(view));
-    // TODO: Uncomment this until Node.js fixes util.inspect for extra properties coloring
-    // expect(inspect(view, { colors: true })).toEqual(util.inspect(view, { colors: true }));
+    expect(inspect(view, { colors: true })).toEqual(util.inspect(view, { colors: true }));
   });
 });
