@@ -249,6 +249,25 @@ describe("Object", () => {
     expect(show(obj, { quoteKeys: "always" })).toEqual('{ "normal": 1, "special-key": 2 }');
   });
 
+  it("should render own `__proto__` keys using computed-property syntax", () => {
+    const enumerable = { ["__proto__"]: { literal: true }, own: 1 };
+    const hidden = {};
+    Object.defineProperty(hidden, "__proto__", {
+      value: { hidden: true },
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    });
+
+    expect(show(enumerable)).toEqual('{ ["__proto__"]: { literal: true }, own: 1 }');
+    expect(inspect(enumerable)).toEqual(util.inspect(enumerable));
+
+    expect(show(hidden, { showHidden: "always" })).toEqual('{ [["__proto__"]]: { hidden: true } }');
+    expect(inspect(hidden, { showHidden: "always" })).toEqual(
+      util.inspect(hidden, { showHidden: true }),
+    );
+  });
+
   it("should show object with circular reference", () => {
     const obj: any = { a: 1 };
     obj.self = obj;

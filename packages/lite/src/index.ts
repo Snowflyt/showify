@@ -923,6 +923,12 @@ function buildTree(
         /* Build base entries */
         const formatKey = (key: string | symbol): string =>
           typeof key === "symbol" ? key.toString()
+            // NOTE: `__proto__` is special in object literals: `{ __proto__: value }` sets the
+            // object's prototype instead of creating an own property, while
+            // `{ ["__proto__"]: value }` creates a normal own property named `__proto__`.
+            // To avoid confusion, we should always quote `__proto__` to make it clear that it
+            // is a string key, not the special `__proto__` behavior in object literals.
+          : key === "__proto__" ? `[${stringifyString(key, quoteStyle)}]`
             // Always quote keys if `quoteKeys` is set to `"always"`
           : quoteKeys === "always" ? stringifyString(key, quoteStyle)
             // For string keys that are valid identifiers, we should show them as is
