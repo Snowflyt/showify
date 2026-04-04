@@ -6,6 +6,7 @@
     "lib": ["ESNext"],
     "module": "ESNext",
     "types": ["node"],
+    "erasableSyntaxOnly": false,
     "rootDir": "${configDir}"
   },
   "include": ["${configDir}/src/**/*", "${configDir}/test/**/*", "${configDir}/bench/**/*"],

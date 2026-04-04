@@ -97,14 +97,14 @@ describe("Object", () => {
       get getter() {
         return "get value";
       },
-      set setter(value: string) {
+      set setter(_value: string) {
         // Do nothing
       },
 
       get both() {
         return { foo: "both value" };
       },
-      set both(value: any) {
+      set both(_value: any) {
         // Do nothing
       },
     };
@@ -154,7 +154,7 @@ describe("Object", () => {
         // eslint-disable-next-line @typescript-eslint/only-throw-error
         throw { message: "error2" };
       },
-      set error2(value: string) {
+      set error2(_value: string) {
         // Do nothing
       },
 
@@ -328,7 +328,7 @@ describe("Object", () => {
   it('should call `Symbol.for("showify.inspect.custom")` method if `callCustomInspect` is `true`', () => {
     const obj = {
       [Symbol.for("showify.inspect.custom")](
-        options: SerializerOptionsStylized,
+        _options: SerializerOptionsStylized,
         expand: (value: unknown, options?: Partial<SerializerOptions>) => Node,
       ) {
         return expand({ foo: "bar" });
