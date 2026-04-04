@@ -135,9 +135,10 @@ export interface ShowOptions {
    */
   referencePointer?: boolean;
   /**
-   * The maximum length of an array to show. If the array is longer than this length, it will be
-   * truncated and an ellipsis with the length of the truncation (e.g., `[1, 2, ... 3 more items]`)
-   * will be shown.
+   * The maximum number of elements to show for arrays, `Map`s, and `Set`s.
+   *
+   * If one of these collections is longer than this length, it will be truncated and an ellipsis
+   * with the number of omitted items (e.g., `[1, 2, ... 3 more items]`) will be shown.
    * @default Infinity
    */
   maxArrayLength?: number;
@@ -1281,9 +1282,20 @@ function buildTree(
                 : 0
               );
             });
-          if (mapEntries.length && !canExpandDeeper) break abort;
-          for (const [key, val] of mapEntries)
+          const visibleMapEntries = mapEntries.slice(
+            0,
+            Number.isFinite(maxArrayLength) ? Math.max(maxArrayLength, 0) : Infinity,
+          );
+          const hiddenMapEntriesCount = mapEntries.length - visibleMapEntries.length;
+          if ((visibleMapEntries.length || hiddenMapEntriesCount) && !canExpandDeeper) break abort;
+          for (const [key, val] of visibleMapEntries)
             (objectEntries as Node[]).push(sequence([expand(key), text(" => "), expand(val)]));
+          if (hiddenMapEntriesCount)
+            (objectEntries as Node[]).push(
+              text(
+                `... ${hiddenMapEntriesCount} more item${hiddenMapEntriesCount === 1 ? "" : "s"}`,
+              ),
+            );
         }
 
         // Set
@@ -1301,8 +1313,17 @@ function buildTree(
                 : 0
               );
             });
-          if (setItems.length && !canExpandDeeper) break abort;
-          for (const val of setItems) (objectEntries as Node[]).push(expand(val));
+          const visibleSetItems = setItems.slice(
+            0,
+            Number.isFinite(maxArrayLength) ? Math.max(maxArrayLength, 0) : Infinity,
+          );
+          const hiddenSetItemsCount = setItems.length - visibleSetItems.length;
+          if ((visibleSetItems.length || hiddenSetItemsCount) && !canExpandDeeper) break abort;
+          for (const val of visibleSetItems) (objectEntries as Node[]).push(expand(val));
+          if (hiddenSetItemsCount)
+            (objectEntries as Node[]).push(
+              text(`... ${hiddenSetItemsCount} more item${hiddenSetItemsCount === 1 ? "" : "s"}`),
+            );
         }
 
         // WeakMap and WeakSet

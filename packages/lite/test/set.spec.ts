@@ -54,6 +54,16 @@ describe("Set", () => {
     expect(inspect(set, { sorted: true })).toEqual(util.inspect(set, { sorted: true }));
   });
 
+  it("should truncate set items when `maxArrayLength` is set", () => {
+    const set = new Set(["a", "b", "c"]);
+
+    expect(show(set, { maxArrayLength: 0 })).toEqual("Set(3) { ... 3 more items }");
+    expect(inspect(set, { maxArrayLength: 0 })).toEqual(util.inspect(set, { maxArrayLength: 0 }));
+
+    expect(show(set, { maxArrayLength: 2 })).toEqual('Set(3) { "a", "b", ... 1 more item }');
+    expect(inspect(set, { maxArrayLength: 2 })).toEqual(util.inspect(set, { maxArrayLength: 2 }));
+  });
+
   it("should show circular references in set", () => {
     const set = new Set();
     const obj = { set };

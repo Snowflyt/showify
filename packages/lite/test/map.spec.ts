@@ -68,6 +68,22 @@ describe("Map", () => {
     expect(inspect(map, { sorted: true })).toEqual(util.inspect(map, { sorted: true }));
   });
 
+  it("should truncate map entries when `maxArrayLength` is set", () => {
+    const map = new Map<any, any>([
+      ["a", 1],
+      ["b", 2],
+      ["c", 3],
+    ]);
+
+    expect(show(map, { maxArrayLength: 0 })).toEqual("Map(3) { ... 3 more items }");
+    expect(inspect(map, { maxArrayLength: 0 })).toEqual(util.inspect(map, { maxArrayLength: 0 }));
+
+    expect(show(map, { maxArrayLength: 2 })).toEqual(
+      'Map(3) { "a" => 1, "b" => 2, ... 1 more item }',
+    );
+    expect(inspect(map, { maxArrayLength: 2 })).toEqual(util.inspect(map, { maxArrayLength: 2 }));
+  });
+
   it("should show circular references in map", () => {
     const map = new Map();
     const obj = { map };
