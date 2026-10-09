@@ -6,6 +6,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+import { stripVTControlCharacters } from "node:util";
+
 import { describe, expect, it } from "vitest";
 
 import type { SerializerOptions } from "../src";
@@ -291,5 +293,113 @@ describe.each(["serializer", "custom inspect"])("Reference identity via %s", (en
       box[customInspect] = (options, expand) => expandSelf(box, options, expand);
 
     expect(show(box, selfOptions)).toEqual("<ref *1> Box { child: [Circular *1] }");
+  });
+});
+
+describe("Node reference metadata", () => {
+  it("should retain both anchors across wrapping and color settings", () => {
+    class Box {
+      constructor(public child: unknown) {}
+    }
+    const child: { owner?: Box; self?: unknown } = {};
+    const box = new Box(child);
+    child.owner = box;
+    child.self = child;
+    const serializers = [
+      serializer({
+        if: (value) => value instanceof Box,
+        then: (value, _options, expand) => expand(value.child),
+      }),
+    ];
+
+    for (const breakLength of [1, 15, 80])
+      for (const indent of [0, 2, 4]) {
+        const options = { serializers, breakLength, indent };
+        const plain = show(box, options);
+        expect(plain.match(/<ref \*1>/g)).toHaveLength(1);
+        expect(plain.match(/<ref \*2>/g)).toHaveLength(1);
+        expect(plain).toContain("[Circular *1]");
+        expect(plain).toContain("[Circular *2]");
+        expect(show(box, { ...options, colors: true })).toContain("\u001b[");
+        expect(stripVTControlCharacters(show(box, { ...options, colors: true }))).toEqual(plain);
+      }
+  });
+
+  it("should preserve layout and outer-to-inner identities through transparent serializers", () => {
+    class Box {
+      constructor(public child: unknown) {}
+    }
+    const child: { self?: unknown } = {};
+    child.self = child;
+    const inner = new Box(child);
+    const outer = new Box(inner);
+    const probe = {};
+    let captured: SerializerNode | undefined;
+    const options = {
+      depth: 10,
+      serializers: [
+        serializer({
+          if: (value) => value === probe,
+          then: (_value, _options, expand) => {
+            captured = expand(outer);
+            return captured;
+          },
+        }),
+        serializer({
+          if: (value) => value instanceof Box,
+          then: (value, _options, expand) => expand(value.child),
+        }),
+      ],
+    };
+
+    expect(show(probe, options)).toEqual("<ref *1> { self: [Circular *1] }");
+    expect(captured?.type).toBe("variant");
+    expect(captured?.refs).toEqual([outer, inner, child]);
+  });
+
+  it("should preserve frozen nodes and avoid duplicating an existing identity", () => {
+    const value = {};
+    const refs = Object.freeze([value]);
+    const node: SerializerNode = Object.freeze({ type: "text", value: "value", refs });
+    const options = {
+      serializers: [
+        serializer({
+          if: (object) => object === value,
+          then: (_value, _options, expand) => {
+            expand(value);
+            return node;
+          },
+        }),
+      ],
+    };
+
+    expect(show(value, options)).toEqual("<ref *1> value");
+    expect(node.refs).toBe(refs);
+    expect(node).toEqual({ type: "text", value: "value", refs: [value] });
+  });
+
+  it("should preserve a circular target independently of its defining identities", () => {
+    const value = {};
+    const probe = {};
+    let captured: SerializerNode | undefined;
+    const options = {
+      serializers: [
+        serializer({
+          if: (object) => object === probe,
+          then: (_value, _options, expand) => {
+            captured = expand(value);
+            return captured;
+          },
+        }),
+        serializer({
+          if: (object) => object === value,
+          then: (_value, _options, expand) => expand(value),
+        }),
+      ],
+    };
+
+    expect(show(probe, options)).toEqual("<ref *1> [Circular *1]");
+    expect(captured).toEqual({ type: "circular", ref: value, refs: [value] });
+    expect(show(probe, { ...options, referencePointer: false })).toEqual("[Circular]");
   });
 });

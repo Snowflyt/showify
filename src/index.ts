@@ -374,11 +374,6 @@ function stringify(
     styles,
   } = options;
 
-  if (type === "circular") {
-    const str = referencePointer ? `[Circular *${refs.get(node.ref)!}]` : "[Circular]";
-    return colors ? colorize(str, styles.special) : str;
-  }
-
   /* Handle nodes start */
   let result = "";
 
@@ -387,8 +382,14 @@ function stringify(
       options.restLineLength - result.length
     : breakLength - result.slice(result.lastIndexOf("\n") + 1).length;
 
+  // circular
+  if (type === "circular") {
+    const str = referencePointer ? `[Circular *${refs.get(node.ref)!}]` : "[Circular]";
+    result = colors ? colorize(str, styles.special) : str;
+  }
+
   // text
-  if (type === "text") {
+  else if (type === "text") {
     const { value } = node;
     result = value;
   }
@@ -510,13 +511,14 @@ function stringify(
   }
   /* Handle nodes end */
 
-  // Add reference pointer if available
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (referencePointer && "ref" in node && node.ref) {
-    const pointer = refs.get(node.ref);
-    if (pointer) {
-      const str = `<ref *${pointer}>`;
-      result = (colors ? colorize(str, styles.special) : str) + " " + result;
+  // Add reference pointers if available
+  if (referencePointer && node.refs) {
+    for (let i = node.refs.length - 1; i >= 0; i--) {
+      const pointer = refs.get(node.refs[i]!);
+      if (pointer) {
+        const str = `<ref *${pointer}>`;
+        result = (colors ? colorize(str, styles.special) : str) + " " + result;
+      }
     }
   }
 
@@ -809,7 +811,10 @@ function buildTree(
             ancestors,
             c,
           } satisfies SerializerOptions;
-          return withRef(serializer(value, newOptions, expand), value);
+          const node = serializer(value, newOptions, expand);
+          return Object.assign({}, node, {
+            refs: node.refs ? [value, ...node.refs.filter((ref) => ref !== value)] : [value],
+          });
         }
 
       if (
@@ -825,7 +830,9 @@ function buildTree(
           CustomInspectSymbol
         ](options, expand);
         options = originalOptions;
-        return withRef(node, value);
+        return Object.assign({}, node, {
+          refs: node.refs ? [value, ...node.refs.filter((ref) => ref !== value)] : [value],
+        });
       }
       if (
         callNodeInspect &&
@@ -842,16 +849,22 @@ function buildTree(
             return options ? show(value, convertToShowOptions(options)) : show(value);
           },
         );
-        if (typeof result === "string") return Object.assign(text(result), { ref: value });
-        return withRef(buildTree(result, options), value);
+        const node: Node = typeof result === "string" ? text(result) : buildTree(result, options);
+        return Object.assign({}, node, {
+          refs: node.refs ? [value, ...node.refs.filter((ref) => ref !== value)] : [value],
+        });
       }
       if (
         callToJSON &&
         !omittedKeys.has("toJSON") &&
         !(value instanceof Date) &&
         typeof (value as { toJSON?: unknown }).toJSON === "function"
-      )
-        return withRef(buildTree((value as { toJSON: () => unknown }).toJSON(), options), value);
+      ) {
+        const node = buildTree((value as { toJSON: () => unknown }).toJSON(), options);
+        return Object.assign({}, node, {
+          refs: node.refs ? [value, ...node.refs.filter((ref) => ref !== value)] : [value],
+        });
+      }
 
       // eslint-disable-next-line sonarjs/no-labels
       abort: do {
@@ -1446,7 +1459,7 @@ function buildTree(
           : body;
 
         // Add reference pointer to help identify circular structures
-        return Object.assign({}, result, { ref: value });
+        return Object.assign({}, result, { refs: [value] });
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, no-constant-condition
       } while (false);
     } catch (e) {
@@ -1468,26 +1481,17 @@ function buildTree(
 /**
  * A tree node that represents a value to be stringified.
  */
-export type Node =
+export type Node = (
   | { type: "circular"; ref: object }
-  | { type: "text"; value: string; ref?: object }
-  | { type: "variant"; inline: Node; wrap: Node; ref?: object }
-  | { type: "sequence"; values: Node[]; ref?: object }
-  | { type: "between"; values: Node[]; open?: Node; close?: Node; ref?: object };
+  | { type: "text"; value: string }
+  | { type: "variant"; inline: Node; wrap: Node }
+  | { type: "sequence"; values: Node[] }
+  | { type: "between"; values: Node[]; open?: Node; close?: Node }
+) & { refs?: readonly object[] };
 /**
  * Helper functions for building {@link Node}s.
  */
 export const Node = { circular, text, variant, sequence, pair, between };
-
-function withRef(node: Node, ref: object): Node {
-  // Preserve a returned node's identity, including the target of a circular node.
-  // A non-circular node for the same object already has the right identity.
-  return Object.assign(
-    {},
-    node.type === "circular" || ("ref" in node && node.ref !== ref) ? sequence([node]) : node,
-    { ref },
-  );
-}
 
 function circular(ref: object): { type: "circular"; ref: object } {
   return { type: "circular", ref };
