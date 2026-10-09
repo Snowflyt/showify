@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from "vitest";
 
+import type { SerializerOptions } from "../src";
 import { Node as SerializerNode, serializer, show } from "../src";
 
 const { between, sequence, text } = SerializerNode;
@@ -177,5 +178,118 @@ describe("Serializer", () => {
     expect(show(obj, { serializers: [ser], depth: 2 })).toEqual(
       "Some({ value: 42, nested: { foo: { bar: [Object] } } })",
     );
+  });
+});
+
+describe.each(["serializer", "custom inspect"])("Reference identity via %s", (entryPoint) => {
+  const customInspect = Symbol.for("showify.inspect.custom");
+
+  class Box {
+    constructor(public child: unknown) {}
+
+    [customInspect](
+      _options: SerializerOptions,
+      expand: (value: unknown, options?: Partial<SerializerOptions>) => SerializerNode,
+    ) {
+      return expand(this.child);
+    }
+  }
+
+  const options =
+    entryPoint === "serializer" ?
+      {
+        serializers: [
+          serializer({
+            if: (value) => value instanceof Box,
+            then: (value, _options, expand) => expand(value.child),
+          }),
+        ],
+      }
+    : {};
+
+  it("should preserve the identity of a directly returned circular node", () => {
+    const root: { box?: Box } = {};
+    root.box = new Box(root);
+
+    expect(show(root, options)).toEqual("<ref *1> { box: [Circular *1] }");
+  });
+
+  it("should preserve the identity of a directly returned child root", () => {
+    const child: { self?: unknown } = {};
+    child.self = child;
+    const box = new Box(child);
+
+    expect(show(box, options)).toEqual("<ref *1> { self: [Circular *1] }");
+    expect(show({ left: box, right: box }, options)).toEqual(
+      "{ left: <ref *1> { self: [Circular *1] }, right: <ref *1> { self: [Circular *1] } }",
+    );
+  });
+
+  it("should retain the outer identity when a child points back to it", () => {
+    const child: { owner?: Box; self?: unknown } = {};
+    const box = new Box(child);
+    child.owner = box;
+
+    expect(show(box, options)).toEqual("<ref *1> { owner: [Circular *1] }");
+
+    child.self = child;
+    expect(show(box, options)).toEqual(
+      "<ref *1> <ref *2> { owner: [Circular *1], self: [Circular *2] }",
+    );
+  });
+
+  it("should define the pointer when directly expanding itself", () => {
+    const box = new Box(undefined);
+    box.child = box;
+
+    expect(show(box, options)).toEqual("<ref *1> [Circular *1]");
+  });
+
+  it("should expand shared objects without treating them as circular", () => {
+    const child = { value: 42 };
+    const box = new Box(child);
+
+    expect(show(box, options)).toEqual("{ value: 42 }");
+    expect(show({ left: box, right: box, child }, options)).toEqual(
+      "{ left: { value: 42 }, right: { value: 42 }, child: { value: 42 } }",
+    );
+  });
+
+  it("should respect referencePointer when directly returning nodes", () => {
+    const root: { box?: Box } = {};
+    root.box = new Box(root);
+    const child: { self?: unknown } = {};
+    child.self = child;
+
+    expect(show(root, { ...options, referencePointer: false })).toEqual("{ box: [Circular] }");
+    expect(show(new Box(child), { ...options, referencePointer: false })).toEqual(
+      "{ self: [Circular] }",
+    );
+  });
+
+  it("should avoid duplicate pointers when re-expanding the same object", () => {
+    const box = new Box(undefined);
+    box.child = box;
+    const expandSelf = (
+      value: Box,
+      { ancestors, level }: SerializerOptions,
+      expand: (value: unknown, options?: Partial<SerializerOptions>) => SerializerNode,
+    ) =>
+      expand(value, {
+        ancestors,
+        level,
+        serializers: [],
+        callCustomInspect: false,
+        omittedKeys: new Set([customInspect]),
+      });
+
+    const selfOptions =
+      entryPoint === "serializer" ?
+        { serializers: [serializer({ if: (value) => value instanceof Box, then: expandSelf })] }
+      : {};
+    if (entryPoint === "custom inspect")
+      box[customInspect] = (options, expand) => expandSelf(box, options, expand);
+
+    expect(show(box, selfOptions)).toEqual("<ref *1> Box { child: [Circular *1] }");
   });
 });

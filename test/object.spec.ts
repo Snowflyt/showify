@@ -467,4 +467,39 @@ describe("Object", () => {
     expect(inspect(obj)).toEqual(util.inspect(obj));
     expect(inspect(obj, { colors: true })).toEqual(util.inspect(obj, { colors: true }));
   });
+
+  it.each([util.inspect.custom, "toJSON"])(
+    "should preserve reference identity when %s returns an object",
+    (method) => {
+      const child: { self?: unknown } = {};
+      child.self = child;
+      const box = { [method]: () => child };
+
+      expect(show(box, { callToJSON: true })).toEqual("<ref *1> { self: [Circular *1] }");
+      expect(show(box, { callToJSON: true, referencePointer: false })).toEqual(
+        "{ self: [Circular] }",
+      );
+
+      const root: { box?: object } = {};
+      root.box = { [method]: () => root };
+      expect(show(root, { callToJSON: true })).toEqual("<ref *1> { box: [Circular *1] }");
+    },
+  );
+
+  it("should not overwrite the identity of a reused custom inspect node", () => {
+    const node: Node = { type: "text", value: "Custom" };
+    const circular = {
+      [Symbol.for("showify.inspect.custom")](
+        _options: SerializerOptions,
+        expand: (value: unknown, options?: Partial<SerializerOptions>) => Node,
+      ) {
+        expand(this);
+        return node;
+      },
+    };
+    const other = { [Symbol.for("showify.inspect.custom")]: () => node };
+
+    expect(show([circular, other])).toEqual("[<ref *1> Custom, Custom]");
+    expect(node).toEqual({ type: "text", value: "Custom" });
+  });
 });

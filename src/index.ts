@@ -809,7 +809,7 @@ function buildTree(
             ancestors,
             c,
           } satisfies SerializerOptions;
-          return Object.assign({}, serializer(value, newOptions, expand), { ref: value });
+          return withRef(serializer(value, newOptions, expand), value);
         }
 
       if (
@@ -825,7 +825,7 @@ function buildTree(
           CustomInspectSymbol
         ](options, expand);
         options = originalOptions;
-        return Object.assign(node, { ref: value });
+        return withRef(node, value);
       }
       if (
         callNodeInspect &&
@@ -843,7 +843,7 @@ function buildTree(
           },
         );
         if (typeof result === "string") return Object.assign(text(result), { ref: value });
-        return Object.assign(buildTree(result, options), { ref: value });
+        return withRef(buildTree(result, options), value);
       }
       if (
         callToJSON &&
@@ -851,9 +851,7 @@ function buildTree(
         !(value instanceof Date) &&
         typeof (value as { toJSON?: unknown }).toJSON === "function"
       )
-        return Object.assign(buildTree((value as { toJSON: () => unknown }).toJSON(), options), {
-          ref: value,
-        });
+        return withRef(buildTree((value as { toJSON: () => unknown }).toJSON(), options), value);
 
       // eslint-disable-next-line sonarjs/no-labels
       abort: do {
@@ -1480,6 +1478,16 @@ export type Node =
  * Helper functions for building {@link Node}s.
  */
 export const Node = { circular, text, variant, sequence, pair, between };
+
+function withRef(node: Node, ref: object): Node {
+  // Preserve a returned node's identity, including the target of a circular node.
+  // A non-circular node for the same object already has the right identity.
+  return Object.assign(
+    {},
+    node.type === "circular" || ("ref" in node && node.ref !== ref) ? sequence([node]) : node,
+    { ref },
+  );
+}
 
 function circular(ref: object): { type: "circular"; ref: object } {
   return { type: "circular", ref };
