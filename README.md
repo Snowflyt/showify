@@ -294,13 +294,18 @@ interface Serializer {
 You may wonder what `Node` is. A `Node` is a tree-like structure that represents the value to be stringified:
 
 ```typescript
-type Node =
+type Node = (
   | { type: "circular"; ref: object }
-  | { type: "text"; value: string; ref?: object }
-  | { type: "variant"; inline: Node; wrap: Node; ref?: object }
-  | { type: "sequence"; values: Node[]; ref?: object }
-  | { type: "between"; values: Node[]; open?: Node; close?: Node; ref?: object };
+  | { type: "text"; value: string }
+  | { type: "variant"; inline: Node; wrap: Node }
+  | { type: "sequence"; values: Node[] }
+  | { type: "between"; values: Node[]; open?: Node; close?: Node }
+) & { refs?: readonly object[] };
 ```
+
+`refs` lists the objects represented at this display position, from outermost to innermost. A transparent serializer can return `expand(value.child)` directly: showify preserves the child's identity and adds the wrapper's identity without changing the node's layout. Circular nodes use `ref` for the target of the back-reference; they can also carry `refs` when they represent another object at the same position. Reference numbers are assigned only to objects encountered in a cycle, so shared objects are still expanded normally.
+
+**Migrating to 0.3:** On non-circular nodes, replace `ref: value` with `refs: [value]` and read `refs` as a list rather than a single object. The old non-circular `ref` field is no longer supported. `Node.circular(value)` and its `ref` target are unchanged. Custom serializers using the node constructors and `expand` normally need no changes. Returned nodes and their `refs` arrays are not mutated when showify adds an object's identity.
 
 Internally, **showify** interacts with Nodes rather than directly with strings:
 
